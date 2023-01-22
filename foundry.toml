@@ -2,6 +2,9 @@
 src = 'contracts'
 out = 'out'
 libs = ['lib']
-remappings = ['@contracts=contracts/']
+remappings = [
+    '@contracts=contracts/',
+    "@openzeppelin/=lib/openzeppelin-contracts",
+]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
