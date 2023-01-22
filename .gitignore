@@ -10,5 +10,9 @@ out/
 # Docs
 docs/
 
-# Dotenv file
+# Config file
 .env
+remappings.txt
+
+# frontend
+frontend/
