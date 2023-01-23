@@ -30,15 +30,15 @@ interface IReputation {
      * @dev Returns the property's score if exists.
      *
      * Requirements:
-     * - `id` the token must exist.
+     * - `property` must exist.
      */
-    function getPropertyScore(uint256 id) external view returns (uint256);
+    function getPropertyScore(uint256 property) external view returns (uint256);
 
     /**
      * @dev Adds `score` to `property` if the sender rented it and but not voted it.
      *
      * Requirements:
-     * - `id` the token must exist.
+     * - `property` must exist.
      * - `score` must be a number between 1 and 5.
      *
      *  Emits a {PropertyScored} event.
