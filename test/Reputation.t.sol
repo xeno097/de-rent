@@ -10,6 +10,8 @@ contract ReputationTest is Test {
     Reputation reputationContract;
     address constant mockAddress = address(97);
 
+    string constant ozOwnableContractError = "Ownable: caller is not the owner";
+
     event UserScored(address indexed user, uint256 score);
     event PropertyScored(uint256 indexed property, uint256 score);
     event UserPaymentPerformanceScored(address indexed user, uint256 score);
@@ -40,7 +42,7 @@ contract ReputationTest is Test {
         uint256 validScore = 4;
 
         // Assert
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.expectRevert(bytes(ozOwnableContractError));
 
         // Act
         reputationContract.scoreUser(mockAddress, validScore);
@@ -117,7 +119,7 @@ contract ReputationTest is Test {
         uint256 validScore = 4;
 
         // Assert
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.expectRevert(bytes(ozOwnableContractError));
 
         // Act
         reputationContract.scoreUser(mockAddress, validScore);
@@ -190,7 +192,7 @@ contract ReputationTest is Test {
     // scoreUserPaymentPerformance()
     function testCannotScoreUserPaymentPerformanceIfNotFromCoreContractAddress() external {
         // Assert
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.expectRevert(bytes(ozOwnableContractError));
 
         // Act
         reputationContract.scoreUserPaymentPerformance(mockAddress, true);
