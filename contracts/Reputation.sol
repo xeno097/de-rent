@@ -67,6 +67,13 @@ contract Reputation is IReputation, Ownable {
     }
 
     /**
+     * @dev see {IReputation-getUserPaymentPerformanceScore}.
+     */
+    function getUserPaymentPerformanceScore(address user) external view not0Address(user) returns (uint256) {
+        return _computeScore(_userPaymentPerformanceScores[user]);
+    }
+
+    /**
      * @dev Computes the average score.
      */
     function _computeScore(uint256[] memory scores) internal pure returns (uint256) {
@@ -111,6 +118,10 @@ contract Reputation is IReputation, Ownable {
      * @dev see {IReputation-scoreUserPaymentPerformance}.
      */
     function scoreUserPaymentPerformance(address user, bool paidOnTime) external onlyOwner not0Address(user) {
+        uint256 score = paidOnTime ? MAX_SCORE : MIN_SCORE;
 
+        _userPaymentPerformanceScores[user].push(score);
+
+        emit UserPaymentPerformanceScored(user, score);
     }
 }

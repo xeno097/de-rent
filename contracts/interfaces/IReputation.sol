@@ -23,7 +23,7 @@ interface IReputation {
     function decimals() external view returns (uint256);
 
     /**
-     * @dev Returns the user's score if exists.
+     * @dev Returns `user` score if exists.
      *
      * Requirements:
      * - `user` cannot be the 0 address.
@@ -32,12 +32,21 @@ interface IReputation {
     function getUserScore(address user) external view returns (uint256);
 
     /**
-     * @dev Returns the property's score if exists.
+     * @dev Returns `property` score if exists.
      *
      * Requirements:
      * - `property` must exist.
      */
     function getPropertyScore(uint256 property) external view returns (uint256);
+
+    /**
+     * @dev Returns `user` payment score if exists.
+     *
+     * Requirements:
+     * - `user` cannot be the 0 address.
+     *
+     */
+    function getUserPaymentPerformanceScore(address user) external view returns (uint256);
 
     /**
      * @dev Adds `score` to `property` if the sender rented it and but not voted it.
@@ -62,7 +71,7 @@ interface IReputation {
     function scoreUser(address user, uint256 score) external;
 
     /**
-     * @dev Allows a user that had a rental aggreement with the target user to score him/her if he/she hasn't already scored him/her.
+     * @dev Updates `user` payment perfomance score.
      *
      * Requirements:
      * - `user` cannot be the 0 address.

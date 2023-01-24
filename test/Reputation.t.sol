@@ -187,6 +187,59 @@ contract ReputationTest is Test {
         reputationContract.scoreProperty(property, score);
     }
 
+    // scoreUserPaymentPerformance()
+    function testCannotScoreUserPaymentPerformanceIfNotFromCoreContractAddress() external {
+        // Assert
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+
+        // Act
+        reputationContract.scoreUserPaymentPerformance(mockAddress, true);
+    }
+
+    function testCannotScoreUserPaymentPerformanceWith0Address() external {
+        // Arrange
+        address expectedAddress = address(0);
+
+        vm.prank(mockAddress);
+
+        // Assert
+        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidAddress.selector, expectedAddress));
+
+        // Act
+        reputationContract.scoreUserPaymentPerformance(expectedAddress, true);
+    }
+
+    function testScoreUserPaymentPerformance(address user, bool paidOnTime) external {
+        // Arrange
+        vm.assume(user != address(0));
+
+        vm.prank(mockAddress);
+
+        // Act
+        reputationContract.scoreUserPaymentPerformance(user, paidOnTime);
+    }
+
+    function testScoreUserPaymentPerformanceEmitsUserPaymentPerformanceScoredEvent(address user, bool paidOnTime)
+        external
+    {
+        // Arrange
+        vm.assume(user != address(0));
+
+        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
+        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
+        uint256 score = paidOnTime ? MAX_SCORE : MIN_SCORE;
+
+        vm.prank(mockAddress);
+
+        // Assert
+        vm.expectEmit(true, true, false, true);
+
+        emit UserPaymentPerformanceScored(user, score);
+
+        // Act
+        reputationContract.scoreUserPaymentPerformance(user, paidOnTime);
+    }
+
     // getUserScore()
     function testCannotGetUserScoreFor0Address() external {
         // Arrange
@@ -270,6 +323,54 @@ contract ReputationTest is Test {
 
         // Act
         uint256 res = reputationContract.getPropertyScore(property);
+
+        // Assert
+        assertEq(res, expectedResult);
+    }
+
+    // getUserPaymentPerformanceScore()
+    function testCannotGetUserPaymentPerformanceScoreFor0Address() external {
+        // Arrange
+        address expectedAddress = address(0);
+
+        // Assert
+        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidAddress.selector, expectedAddress));
+
+        // Act
+        reputationContract.getUserPaymentPerformanceScore(expectedAddress);
+    }
+
+    function testGetUserPaymentPerformanceScoreReturnsTheMaximumScoreIfUserHas0RegisteredScores(address user)
+        external
+    {
+        // Arrange
+        vm.assume(user != address(0));
+        uint256 expectedResult = reputationContract.MAX_SCORE() * (10 ** reputationContract.decimals());
+
+        // Act
+        uint256 res = reputationContract.getUserPaymentPerformanceScore(user);
+
+        // Assert
+        assertEq(res, expectedResult);
+    }
+
+    function testGetUserPaymentPerformanceScore(address user) external {
+        // Arrange
+        vm.assume(user != address(0));
+        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
+        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
+
+        bool[3] memory scores = [true, false, true];
+        uint256 expectedResult =
+            ((MAX_SCORE + MIN_SCORE + MAX_SCORE) * (10 ** reputationContract.decimals())) / scores.length;
+
+        for (uint256 i = 0; i < scores.length; i++) {
+            vm.prank(mockAddress);
+            reputationContract.scoreUserPaymentPerformance(user, scores[i]);
+        }
+
+        // Act
+        uint256 res = reputationContract.getUserPaymentPerformanceScore(user);
 
         // Assert
         assertEq(res, expectedResult);
