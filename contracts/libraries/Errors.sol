@@ -30,7 +30,7 @@ library Errors {
     /**
      * @dev Thrown when sender tries to pay with an incorrect deposit.
      */
-    error InsufficientDeposit();
+    error IncorrectDeposit();
 
     /**
      * @dev Thrown when sender tries to withdraw 0 from its balance.
