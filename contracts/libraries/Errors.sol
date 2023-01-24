@@ -33,7 +33,17 @@ library Errors {
     error IncorrectDeposit();
 
     /**
+     * @dev Thrown when sender tries to set with an incorrect rent price.
+     */
+    error IncorrectRentPrice();
+
+    /**
      * @dev Thrown when sender tries to withdraw 0 from its balance.
      */
     error InsufficientBalance();
+
+    /**
+     * @dev Thrown when sender tries to perform an action on a property that does not own.
+     */
+    error NotPropertyOwner();
 }
