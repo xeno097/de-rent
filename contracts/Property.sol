@@ -21,12 +21,14 @@ contract Property is IProperty, ERC721URIStorage, IERC4906, Ownable {
     /**
      * @dev see {IProperty-mint}.
      */
-    function mint(address user, string memory uri) external onlyOwner {
+    function mint(address user, string memory uri) external onlyOwner returns(uint256 property) {
         uint256 newTokenId = _tokenCounter.current();
         _tokenCounter.increment();
 
         _safeMint(user, newTokenId);
         _setTokenURI(newTokenId, uri);
+
+        return newTokenId;
     }
 
     /**
