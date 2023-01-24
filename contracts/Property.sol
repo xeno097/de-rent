@@ -45,9 +45,44 @@ contract Property is IProperty, ERC721URIStorage, IERC4906, Ownable {
         emit MetadataUpdate(property);
     }
 
-    // Overrides
-    /// @dev see {IERC165-supportsInterface}.
+    // ERC165 Overrides
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721) returns (bool) {
         return interfaceId == bytes4(0x49064906) || super.supportsInterface(interfaceId);
+    }
+
+    // ERC721 Overrides
+    function approve(address to, uint256 tokenId) public virtual override(ERC721, IERC721) onlyOwner {
+        super.approve(to, tokenId);
+    }
+
+    function setApprovalForAll(address operator, bool approved) public virtual override(ERC721, IERC721) onlyOwner {
+        super.setApprovalForAll(operator, approved);
+    }
+
+    function transferFrom(address from, address to, uint256 tokenId)
+        public
+        virtual
+        override(ERC721, IERC721)
+        onlyOwner
+    {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId)
+        public
+        virtual
+        override(ERC721, IERC721)
+        onlyOwner
+    {
+        super.safeTransferFrom(from, to, tokenId, "");
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data)
+        public
+        virtual
+        override(ERC721, IERC721)
+        onlyOwner
+    {
+        super.safeTransferFrom(from, to, tokenId, data);
     }
 }
