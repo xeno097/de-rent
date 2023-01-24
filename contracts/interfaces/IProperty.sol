@@ -16,4 +16,14 @@ interface IProperty is IERC721 {
      * @dev Verifies that `property` exists.
      */
     function exists(uint256 property) external view returns (bool);
+
+    /**
+     * @dev Updates `property` metadata with `uri` if exists.
+     *
+     * Requirements:
+     * - `property` must exists.
+     *
+     *  Emits a {MetadataUpdate} event.
+     */
+    function updateMetadata(uint256 property, string memory uri) external;
 }
