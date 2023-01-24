@@ -18,6 +18,11 @@ interface IReputation {
     event UserPaymentPerformanceScored(address indexed user, uint256 score);
 
     /**
+     * @dev Returns the number of decimals used to get the scores user representation.
+     */
+    function decimals() external view returns (uint256);
+
+    /**
      * @dev Returns the user's score if exists.
      *
      * Requirements:
