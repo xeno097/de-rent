@@ -24,7 +24,7 @@ contract PropertyTest is Test {
         vm.assume(user > address(10) && user != mockAddress);
         vm.prank(user);
 
-        // Arrange
+        // Assert
         vm.expectRevert(bytes(ozOwnableContractError));
 
         // Act
@@ -38,7 +38,7 @@ contract PropertyTest is Test {
         // Act
         propertyContract.mint(mockAddress, "");
 
-        // Arrange
+        // Assert
         uint256 balance = propertyContract.balanceOf(mockAddress);
         assertEq(balance, 1);
     }
@@ -51,7 +51,7 @@ contract PropertyTest is Test {
         propertyContract.mint(mockAddress, "");
         propertyContract.mint(mockAddress, "");
 
-        // Arrange
+        // Assert
         uint256 balance = propertyContract.balanceOf(mockAddress);
         assertEq(balance, 2);
 
@@ -66,7 +66,7 @@ contract PropertyTest is Test {
         // Act
         propertyContract.mint(mockAddress, expectedUri);
 
-        // Arrange
+        // Assert
         string memory uri = propertyContract.tokenURI(0);
         assertEq(uri, expectedUri);
     }
