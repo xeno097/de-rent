@@ -48,6 +48,11 @@ library Errors {
     error NotPropertyOwner();
 
     /**
+     * @dev Thrown when sender tries to rent a non existant property.
+     */
+    error CannotRentNonExistantProperty();
+
+    /**
      * @dev Thrown when sender tries to rent his/her own property.
      */
     error CannotRentOwnProperty();

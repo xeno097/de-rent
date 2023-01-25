@@ -38,6 +38,8 @@ contract Core is ICore {
     mapping(uint256 => Rental) public rentals;
     mapping(address => uint256) public balances;
 
+    uint256 public constant MONTH = 30 days;
+
     constructor(address _propertyAddress, address _reputationAddress) {
         propertyInstance = IProperty(_propertyAddress);
         reputationInstance = IReputation(_reputationAddress);
@@ -68,17 +70,25 @@ contract Core is ICore {
      * @dev see {ICore-requestRental}.
      */
     function requestRental(uint256 propertyId) external payable {
-        Property memory property = properties[propertyId];
-        Rental memory rental = rentals[propertyId];
+        address owner = propertyInstance.ownerOf(propertyId);
 
-        // TODO: check that the property exists and that the owner is not the 0 address
-        if (propertyInstance.ownerOf(propertyId) == msg.sender) {
+        // If the owner is the 0 address we can assume that the
+        // property does not exists.
+        if (owner == address(0)) {
+            revert Errors.CannotRentNonExistantProperty();
+        }
+
+        if (owner == msg.sender) {
             revert Errors.CannotRentOwnProperty();
         }
+
+        Rental memory rental = rentals[propertyId];
 
         if (rental.tenant != address(0)) {
             revert Errors.CannotRentAlreadyRentedProperty();
         }
+
+        Property memory property = properties[propertyId];
 
         if (!property.published) {
             revert Errors.CannotRentHiddenProperty();
@@ -109,7 +119,7 @@ contract Core is ICore {
         Rental memory rental = rentals[request];
 
         rental.createdAt = block.timestamp;
-        rental.paymentDate = block.timestamp + 30 days;
+        rental.paymentDate = block.timestamp + MONTH;
         rental.status = RentalStatus.Approved;
 
         rentals[request] = rental;
