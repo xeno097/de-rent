@@ -11,7 +11,7 @@ contract Core is ICore {
     IReputation reputationInstance;
 
     uint256 CONTRACT_DURATION = 52 weeks; // ~ 1 year
-    uint256 RENTAL_REQUEST_NUMBER_OF_DEPOSITS = 2;
+    uint256 public RENTAL_REQUEST_NUMBER_OF_DEPOSITS = 2;
     uint256 public MIN_RENT_PRICE = 0.02 ether;
 
     struct Property {
@@ -22,11 +22,14 @@ contract Core is ICore {
     struct Rental {
         uint256 rentPrice;
         address tenant;
+        uint256 availableDeposits;
+        uint256 paymentDate;
+        uint256 createdAt;
     }
 
     mapping(uint256 => Property) public properties;
-    mapping(uint256 => Rental) rentals;
-    mapping(address => uint256) balances;
+    mapping(uint256 => Rental) public rentals;
+    mapping(address => uint256) public balances;
 
     constructor(address _propertyAddress, address _reputationAddress) {
         propertyInstance = IProperty(_propertyAddress);
@@ -50,7 +53,36 @@ contract Core is ICore {
     /**
      * @dev see {ICore-requestRental}.
      */
-    function requestRental(uint256 property) external {}
+    function requestRental(uint256 propertyId) external payable {
+        Property memory property = properties[propertyId];
+        Rental memory rental = rentals[propertyId];
+
+        if (propertyInstance.ownerOf(propertyId) == msg.sender) {
+            revert Errors.CannotRentOwnProperty();
+        }
+
+        if (rental.tenant != address(0)) {
+            revert Errors.CannotRentAlreadyRentedProperty();
+        }
+
+        if (!property.published) {
+            revert Errors.CannotRentHiddenProperty();
+        }
+
+        if (msg.value != RENTAL_REQUEST_NUMBER_OF_DEPOSITS * property.rentPrice) {
+            revert Errors.IncorrectDeposit();
+        }
+
+        rental.availableDeposits = RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
+        rental.createdAt = block.timestamp;
+        rental.paymentDate = block.timestamp + 30 days;
+        rental.rentPrice = property.rentPrice;
+        rental.tenant = msg.sender;
+
+        rentals[propertyId] = rental;
+
+        emit RentalRequested(propertyId);
+    }
 
     /**
      * @dev see {ICore-approveRentalRequest}.
@@ -93,6 +125,7 @@ contract Core is ICore {
      * @dev see {ICore-payRent}.
      */
     function payRent(uint256 rental) external payable onlyPropertyTenant(rental) {
+
     }
 
     /**

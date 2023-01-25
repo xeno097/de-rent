@@ -11,7 +11,7 @@ contract CoreTest is Test {
 
     string constant ozOwnableContractError = "Ownable: caller is not the owner";
 
-    event MetadataUpdate(uint256 _tokenId);
+    event RentalRequested(uint256 indexed request);
 
     function setUp() public {
         coreContract = new Core(mockAddress,mockAddress);
@@ -122,5 +122,127 @@ contract CoreTest is Test {
         // Assert
         (, bool visibility) = coreContract.properties(0);
         assertEq(visibility, expectedVisibility);
+    }
+
+    // requestRental()
+    function testCannotRequestRentalForOwnProperty(address user) external {
+        //    Arrange
+        _setUpOwnerOfMockCall(user);
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.CannotRentOwnProperty.selector);
+
+        // Act
+        coreContract.requestRental(0);
+    }
+
+    function testCannotRequestRentalIfPropertyIsAlreadyRented(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        // Equivalent to setting rentals[0].tenant to mockAddress
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(mockAddress))));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.CannotRentAlreadyRentedProperty.selector);
+
+        // Act
+        coreContract.requestRental(0);
+    }
+
+    function testCannotRequestRentalIfPropertyIsHidden(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.CannotRentHiddenProperty.selector);
+
+        // Act
+        coreContract.requestRental(0);
+    }
+
+    function testCannotRequestRentalWithInvalidDeposit(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+
+        // Equivalent to setting properties[0].published to true
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(5)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
+
+        // Equivalent to setting properties[0].rentPrice to 0.02 ether
+        storageSlot = keccak256(abi.encode(uint256(0), uint256(5)));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        // Assert
+        vm.expectRevert(Errors.IncorrectDeposit.selector);
+
+        // Act
+        coreContract.requestRental(0);
+    }
+
+    function testRequestRental(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+        uint256 RENTAL_REQUEST_NUMBER_OF_DEPOSITS = coreContract.RENTAL_REQUEST_NUMBER_OF_DEPOSITS();
+
+        // Equivalent to setting properties[0].published to true
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(5)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
+
+        // Equivalent to setting properties[0].rentPrice to 0.02 ether
+        storageSlot = keccak256(abi.encode(uint256(0), uint256(5)));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        uint256 deposit = MIN_RENT_PRICE * RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
+        hoax(user, deposit);
+
+        // Act
+        coreContract.requestRental{value: deposit}(0);
+
+        // Assert
+        (, address tenant,,,) = coreContract.rentals(0);
+        assertEq(tenant, user);
+    }
+
+    function testRequestRentalEmitsRentalRequested(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+        uint256 RENTAL_REQUEST_NUMBER_OF_DEPOSITS = coreContract.RENTAL_REQUEST_NUMBER_OF_DEPOSITS();
+
+        // Equivalent to setting properties[0].published to true
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(5)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
+
+        // Equivalent to setting properties[0].rentPrice to 0.02 ether
+        storageSlot = keccak256(abi.encode(uint256(0), uint256(5)));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        uint256 deposit = MIN_RENT_PRICE * RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
+        hoax(user, deposit);
+
+        // Assert
+        vm.expectEmit(true, false, false, true);
+
+        emit RentalRequested(0);
+
+        // Act
+        coreContract.requestRental{value: deposit}(0);
     }
 }
