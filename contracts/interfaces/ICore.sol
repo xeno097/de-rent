@@ -45,7 +45,7 @@ interface ICore {
      *
      *  Emits a {RentalRequested} event.
      */
-    function requestRental(uint256 property) external;
+    function requestRental(uint256 property) external payable;
 
     /**
      * @dev Allows sender to update the `property` visibility if he/she is `property` owner.

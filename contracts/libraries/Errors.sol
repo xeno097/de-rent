@@ -46,4 +46,19 @@ library Errors {
      * @dev Thrown when sender tries to perform an action on a property that does not own.
      */
     error NotPropertyOwner();
+
+    /**
+     * @dev Thrown when sender tries to rent his/her own property.
+     */
+    error CannotRentOwnProperty();
+
+    /**
+     * @dev Thrown when sender tries to rent an already rented property.
+     */
+    error CannotRentAlreadyRentedProperty();
+
+    /**
+     * @dev Thrown when sender tries to rent a hidden property.
+     */
+    error CannotRentHiddenProperty();
 }
