@@ -61,4 +61,9 @@ library Errors {
      * @dev Thrown when sender tries to rent a hidden property.
      */
     error CannotRentHiddenProperty();
+
+    /**
+     * @dev Thrown when sender tries to approve a rental request that does not have status set to {RentalStatus.Pending} .
+     */
+    error CannotApproveNotPendingRentalRequest();
 }

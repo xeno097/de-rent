@@ -12,6 +12,8 @@ contract CoreTest is Test {
     string constant ozOwnableContractError = "Ownable: caller is not the owner";
 
     event RentalRequested(uint256 indexed request);
+    event RentalRequestApproved(uint256 indexed request);
+    event RentalRequestRejected(uint256 indexed request);
 
     function setUp() public {
         coreContract = new Core(mockAddress,mockAddress);
@@ -214,7 +216,7 @@ contract CoreTest is Test {
         coreContract.requestRental{value: deposit}(0);
 
         // Assert
-        (, address tenant,,,) = coreContract.rentals(0);
+        (, address tenant,,,,) = coreContract.rentals(0);
         assertEq(tenant, user);
     }
 
@@ -244,5 +246,160 @@ contract CoreTest is Test {
 
         // Act
         coreContract.requestRental{value: deposit}(0);
+    }
+
+    // approveRentalRequest()
+    function testCannotApproveRentalRequestForNotOwnedProperty(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.NotPropertyOwner.selector);
+
+        // Act
+        coreContract.approveRentalRequest(0);
+    }
+
+    function testCannotApproveRentalRequestForNotPendingRequest(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Free
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(0)));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.CannotApproveNotPendingRentalRequest.selector);
+
+        // Act
+        coreContract.approveRentalRequest(0);
+    }
+
+    // TODO: test that the method increments the owner balance.
+
+    function testApproveRentalRequest(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Pending
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
+
+        vm.prank(user);
+
+        // Act
+        coreContract.approveRentalRequest(0);
+
+        // Assert
+        (,,,, Core.RentalStatus status,) = coreContract.rentals(0);
+        assertEq(uint8(status), uint8(Core.RentalStatus.Approved));
+    }
+
+    function testApproveRentalRequestEmitsRentalRequestApproved(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Pending
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectEmit(true, false, false, true);
+
+        emit RentalRequestApproved(0);
+
+        // Act
+        coreContract.approveRentalRequest(0);
+    }
+
+    // rejectRentalRequest()
+    function testCannotRejectRentalRequestForNotOwnedProperty(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.NotPropertyOwner.selector);
+
+        // Act
+        coreContract.rejectRentalRequest(0);
+    }
+
+    function testCannotRejectRentalRequestForNotPendingRequest(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Free
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(0)));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.CannotApproveNotPendingRentalRequest.selector);
+
+        // Act
+        coreContract.rejectRentalRequest(0);
+    }
+
+    function testRejectRentalRequest(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Pending
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
+
+        vm.prank(user);
+
+        // Act
+        coreContract.rejectRentalRequest(0);
+
+        // Assert
+        (
+            uint256 rentPrice,
+            address tenant,
+            uint256 availableDeposits,
+            uint256 paymentDate,
+            Core.RentalStatus status,
+            uint256 createdAt
+        ) = coreContract.rentals(0);
+
+        assertEq(rentPrice, 0);
+        assertEq(tenant, address(0));
+        assertEq(availableDeposits, 0);
+        assertEq(paymentDate, 0);
+        assertEq(uint8(status), uint8(Core.RentalStatus.Free));
+        assertEq(createdAt, 0);
+    }
+
+    // TODO: test that the method increments the tenant balance.
+
+    function testRejectRentalRequestEmitsRentalRequestApproved(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Pending
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectEmit(true, false, false, true);
+
+        emit RentalRequestRejected(0);
+
+        // Act
+        coreContract.rejectRentalRequest(0);
     }
 }
