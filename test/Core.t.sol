@@ -479,6 +479,164 @@ contract CoreTest is Test {
     }
 
     // payRent()
+    function testCannotPayRentIfNotPropertyTenant(address user) external {
+        // Arrange
+        vm.assume(user != address(0));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.NotPropertyTenant.selector);
+
+        // Act
+        coreContract.payRent(0);
+    }
+
+    function testCannotPayRentIfContractExpired(address user) external {
+        // Arrange
+
+        // Equivalent to setting rentals[user].tenant to user
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
+
+        vm.warp(53 weeks);
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.CannotPayRentAfterContractExpiry.selector);
+
+        // Act
+        coreContract.payRent(0);
+    }
+
+    function testCannotPayRentBeforePaymentDate(address user) external {
+        // Arrange
+
+        // Equivalent to setting rentals[user].tenant to user
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
+
+        // Equivalent to setting rentals[user].paymentDate to block.timestamp+ 7 days
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
+        vm.store(address(coreContract), storageSlot, bytes32(block.timestamp + 7 days));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.PayRentDateNotReached.selector);
+
+        // Act
+        coreContract.payRent(0);
+    }
+
+    function testCannotPayRentAfterLatePaymentDeadline(address user) external {
+        // Arrange
+
+        // Equivalent to setting rentals[user].tenant to user
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
+
+        // Equivalent to setting rentals[user].paymentDate to block.timestamp+ 7 days
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
+        vm.store(address(coreContract), storageSlot, bytes32(block.timestamp));
+
+        vm.warp(7 days);
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.CannotPayRentAfterLatePaymentDeadline.selector);
+
+        // Act
+        coreContract.payRent(0);
+    }
+
+    function testCannotPayRentWithAnIncorrectDeposit(address user, uint256 invalidDeposit) external {
+        // Arrange
+        vm.warp(7 days);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+        vm.assume(0 <= invalidDeposit && invalidDeposit < MIN_RENT_PRICE);
+
+        // Equivalent to setting rentals[0].tenant to user
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
+
+        // Equivalent to setting rentals[0].paymentDate to block.timestamp - 1 days
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
+        vm.store(address(coreContract), storageSlot, bytes32(block.timestamp - 1 days));
+
+        // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        hoax(user, invalidDeposit);
+
+        // Assert
+        vm.expectRevert(Errors.IncorrectDeposit.selector);
+
+        // Act
+        coreContract.payRent{value: invalidDeposit}(0);
+    }
+
+    function testPayRentIncreasesTheOwnerBalance(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(mockAddress);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+
+        // Equivalent to setting rentals[0].tenant to user
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
+
+        // Equivalent to setting rentals[0].paymentDate to block.timestamp - 1 days
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
+        vm.store(address(coreContract), storageSlot, bytes32(block.timestamp));
+
+        // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        hoax(user, MIN_RENT_PRICE);
+
+        // Act
+        coreContract.payRent{value: MIN_RENT_PRICE}(0);
+
+        // Assert
+        uint256 balance = coreContract.balances(mockAddress);
+
+        assertEq(balance, MIN_RENT_PRICE);
+    }
+
+    function testPayRentUpdatesThePayDateForTheRental(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(mockAddress);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+        uint256 currentPayDate = block.timestamp;
+
+        // Equivalent to setting rentals[0].tenant to user
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
+
+        // Equivalent to setting rentals[0].paymentDate to block.timestamp
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
+        vm.store(address(coreContract), storageSlot, bytes32(currentPayDate));
+
+        // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        hoax(user, MIN_RENT_PRICE);
+
+        // Act
+        coreContract.payRent{value: MIN_RENT_PRICE}(0);
+
+        // Assert
+        (,,, uint256 paymentDate,,) = coreContract.rentals(0);
+
+        assertEq(paymentDate, currentPayDate + 30 days);
+    }
 
     // witdraw()
     function testCannotWithdrawIfUserBalanceIs0(address user) external {

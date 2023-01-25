@@ -39,6 +39,8 @@ contract Core is ICore {
     mapping(address => uint256) public balances;
 
     uint256 public constant MONTH = 30 days;
+    uint256 public constant ON_TIME_PAYMENT_DEADLINE = 3 days;
+    uint256 public constant LATE_PAYMENT_DEADLINE = ON_TIME_PAYMENT_DEADLINE + 2 days;
 
     constructor(address _propertyAddress, address _reputationAddress) {
         propertyInstance = IProperty(_propertyAddress);
@@ -54,7 +56,7 @@ contract Core is ICore {
 
     modifier onlyPropertyTenant(uint256 property) {
         if (rentals[property].tenant != msg.sender) {
-            revert();
+            revert Errors.NotPropertyTenant();
         }
         _;
     }
@@ -176,16 +178,33 @@ contract Core is ICore {
      * @dev see {ICore-payRent}.
      */
     function payRent(uint256 rental) external payable onlyPropertyTenant(rental) {
-        // Property memory property = properties[rental];
+        Rental memory property = rentals[rental];
 
-        // if (msg.value != property.rentPrice) {
-        //     revert Errors.IncorrectDeposit();
-        // }
+        if(block.timestamp > property.createdAt + CONTRACT_DURATION){
+            revert Errors.CannotPayRentAfterContractExpiry();
+        }
 
-        // address owner = propertyInstance.ownerOf(rental);
-        // balances[owner] += msg.value;
+        if (block.timestamp < property.paymentDate) {
+            revert Errors.PayRentDateNotReached();
+        }
 
-        // reputationInstance.scoreUserPaymentPerformance(msg.sender, true);
+        if (block.timestamp > property.paymentDate + LATE_PAYMENT_DEADLINE) {
+            revert Errors.CannotPayRentAfterLatePaymentDeadline();
+        }
+
+        if (msg.value != property.rentPrice) {
+            revert Errors.IncorrectDeposit();
+        }
+
+        address owner = propertyInstance.ownerOf(rental);
+        balances[owner] += msg.value;
+
+        property.paymentDate += MONTH;
+        rentals[rental] = property;
+
+        bool paidOnTime = block.timestamp <= ON_TIME_PAYMENT_DEADLINE;
+
+        reputationInstance.scoreUserPaymentPerformance(msg.sender, paidOnTime);
     }
 
     /**

@@ -48,6 +48,11 @@ library Errors {
     error NotPropertyOwner();
 
     /**
+     * @dev Thrown when sender tries to performan action on a property that is not renting.
+     */
+    error NotPropertyTenant();
+
+    /**
      * @dev Thrown when sender tries to rent a non existant property.
      */
     error CannotRentNonExistantProperty();
@@ -76,4 +81,19 @@ library Errors {
      * @dev Thrown when sender tries withdraw his/her funds but the transfer fails.
      */
     error FailedToWithdraw();
+
+    /**
+     * @dev Thrown when sender tries to pay rent before the pay date is reached.
+     */
+    error PayRentDateNotReached();
+
+    /**
+     * @dev Thrown when sender tries to pay rent after the pay date deadline is reached.
+     */
+    error CannotPayRentAfterLatePaymentDeadline();
+
+    /**
+     * @dev Thrown when sender tries to pay rent after a year has passed.
+     */
+    error CannotPayRentAfterContractExpiry();
 }
