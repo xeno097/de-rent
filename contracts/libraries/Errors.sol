@@ -96,4 +96,14 @@ library Errors {
      * @dev Thrown when sender tries to pay rent after a year has passed.
      */
     error CannotPayRentAfterContractExpiry();
+
+    /**
+     * @dev Thrown when sender tries to perform an action that requires the rental to be approved.
+     */
+    error RentalNotApproved();
+
+    /**
+     * @dev Thrown when sender tries to perform an action that requires the rental completion date to be reached.
+     */
+    error RentalCompletionDateNotReached();
 }

@@ -72,6 +72,11 @@ interface ICore {
     function payRent(uint256 rental) external payable;
 
     /**
+     * @dev Allows sender to perform the closing steps after `rental` has been completed.
+     */
+    function completeRental(uint256 rental) external;
+
+    /**
      * @dev Allows sender to withdraw his/her balance.
      */
     function withdraw() external;
