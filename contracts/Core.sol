@@ -180,7 +180,9 @@ contract Core is ICore {
     function payRent(uint256 rental) external payable onlyPropertyTenant(rental) {
         Rental memory property = rentals[rental];
 
-        if(block.timestamp > property.createdAt + CONTRACT_DURATION){
+        //TODO: Check if the contract is approved
+
+        if (block.timestamp > property.createdAt + CONTRACT_DURATION) {
             revert Errors.CannotPayRentAfterContractExpiry();
         }
 
@@ -205,6 +207,25 @@ contract Core is ICore {
         bool paidOnTime = block.timestamp <= ON_TIME_PAYMENT_DEADLINE;
 
         reputationInstance.scoreUserPaymentPerformance(msg.sender, paidOnTime);
+    }
+
+    /**
+     * @dev see {ICore-completeRental}.
+     */
+    function completeRental(uint256 rental) external onlyPropertyOwner(rental) {
+        Rental memory property = rentals[rental];
+
+        if (property.status != RentalStatus.Approved) {
+            revert Errors.RentalNotApproved();
+        }
+
+        if (block.timestamp <= property.createdAt + CONTRACT_DURATION) {
+            revert Errors.RentalCompletionDateNotReached();
+        }
+
+        balances[property.tenant] = property.rentPrice * property.availableDeposits;
+
+        delete rentals[rental];
     }
 
     /**

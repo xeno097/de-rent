@@ -638,7 +638,126 @@ contract CoreTest is Test {
         assertEq(paymentDate, currentPayDate + 30 days);
     }
 
-    // witdraw()
+    // completeRental()
+    function testCannotCompleteRentalIfNotPropertyOwner(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.NotPropertyOwner.selector);
+
+        // Act
+        coreContract.completeRental(0);
+    }
+
+    function testCannotCompleteRentalIfRentalIsNotApproved(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.RentalNotApproved.selector);
+
+        // Act
+        coreContract.completeRental(0);
+    }
+
+    function testCannotCompleteRentalIfRentalCompletionDateIsNotReached(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.RentalCompletionDateNotReached.selector);
+
+        // Act
+        coreContract.completeRental(0);
+    }
+
+    function testCompleteIncrementsTenantBalance(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+        uint256 RENTAL_REQUEST_NUMBER_OF_DEPOSITS = coreContract.RENTAL_REQUEST_NUMBER_OF_DEPOSITS();
+        uint256 expectedBalance = MIN_RENT_PRICE * RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
+
+        // Equivalent to setting rentals[0].tenant to mockAddress
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(mockAddress))));
+
+        // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        // Equivalent to setting rentals[0].availableDeposits to RENTAL_REQUEST_NUMBER_OF_DEPOSITS
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 2);
+        vm.store(address(coreContract), storageSlot, bytes32(RENTAL_REQUEST_NUMBER_OF_DEPOSITS));
+
+        vm.warp(53 weeks);
+
+        vm.prank(user);
+
+        // Act
+        coreContract.completeRental(0);
+
+        // Assert
+        uint256 balance = coreContract.balances(mockAddress);
+
+        assertEq(balance, expectedBalance);
+    }
+
+    function testCompleteRentalCleansTheRentalData(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
+
+        // Equivalent to setting rentals[0].tenant to mockAddress
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(mockAddress))));
+
+        vm.warp(53 weeks);
+
+        vm.prank(user);
+
+        // Act
+        coreContract.completeRental(0);
+
+        // Assert
+        (
+            uint256 rentPrice,
+            address tenant,
+            uint256 availableDeposits,
+            uint256 paymentDate,
+            Core.RentalStatus status,
+            uint256 createdAt
+        ) = coreContract.rentals(0);
+
+        assertEq(rentPrice, 0);
+        assertEq(tenant, address(0));
+        assertEq(availableDeposits, 0);
+        assertEq(paymentDate, 0);
+        assertEq(uint8(status), uint8(0));
+        assertEq(createdAt, 0);
+    }
+
+    // withdraw()
     function testCannotWithdrawIfUserBalanceIs0(address user) external {
         // Arrange
         vm.prank(user);
