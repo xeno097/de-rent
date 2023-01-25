@@ -180,7 +180,9 @@ contract Core is ICore {
     function payRent(uint256 rental) external payable onlyPropertyTenant(rental) {
         Rental memory property = rentals[rental];
 
-        //TODO: Check if the contract is approved
+        if(property.status != RentalStatus.Approved){
+            revert Errors.RentalNotApproved();
+        }
 
         if (block.timestamp > property.createdAt + CONTRACT_DURATION) {
             revert Errors.CannotPayRentAfterContractExpiry();

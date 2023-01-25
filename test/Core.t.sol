@@ -492,12 +492,32 @@ contract CoreTest is Test {
         coreContract.payRent(0);
     }
 
+    function testCannotPayRentIfRentalIsNotApproved(address user) external {
+        // Arrange
+
+        // Equivalent to setting rentals[user].tenant to user
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.RentalNotApproved.selector);
+
+        // Act
+        coreContract.payRent(0);
+    }
+
     function testCannotPayRentIfContractExpired(address user) external {
         // Arrange
 
         // Equivalent to setting rentals[user].tenant to user
         bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
         vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
 
         vm.warp(53 weeks);
         vm.prank(user);
@@ -520,6 +540,10 @@ contract CoreTest is Test {
         storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
         vm.store(address(coreContract), storageSlot, bytes32(block.timestamp + 7 days));
 
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
+
         vm.prank(user);
 
         // Assert
@@ -539,6 +563,10 @@ contract CoreTest is Test {
         // Equivalent to setting rentals[user].paymentDate to block.timestamp+ 7 days
         storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
         vm.store(address(coreContract), storageSlot, bytes32(block.timestamp));
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
 
         vm.warp(7 days);
 
@@ -570,6 +598,10 @@ contract CoreTest is Test {
         storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
         vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
 
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
+
         hoax(user, invalidDeposit);
 
         // Assert
@@ -596,6 +628,10 @@ contract CoreTest is Test {
         // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
         storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
         vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
 
         hoax(user, MIN_RENT_PRICE);
 
@@ -626,6 +662,10 @@ contract CoreTest is Test {
         // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
         storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
         vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
 
         hoax(user, MIN_RENT_PRICE);
 
