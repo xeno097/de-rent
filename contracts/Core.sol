@@ -191,5 +191,18 @@ contract Core is ICore {
     /**
      * @dev see {ICore-withdraw}.
      */
-    function withdraw() external {}
+    function withdraw() external {
+        uint256 balance = balances[msg.sender];
+        balances[msg.sender] = 0;
+
+        if (balance == 0) {
+            revert Errors.InsufficientBalance();
+        }
+
+        (bool ok,) = msg.sender.call{value: balance}("");
+
+        if (!ok) {
+            revert Errors.FailedToWithdraw();
+        }
+    }
 }

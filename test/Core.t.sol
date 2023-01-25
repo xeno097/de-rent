@@ -477,4 +477,72 @@ contract CoreTest is Test {
         // Act
         coreContract.rejectRentalRequest(0);
     }
+
+    // payRent()
+
+    // witdraw()
+    function testCannotWithdrawIfUserBalanceIs0(address user) external {
+        // Arrange
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.InsufficientBalance.selector);
+
+        // Act
+        coreContract.withdraw();
+    }
+
+    function testThrowsFailedToWithdrawIfTranferFails(address user) external {
+        // Arrange
+        vm.mockCall(user, abi.encode(""), abi.encode());
+
+        // Equivalent to setting rentals[user] to expectedBalance
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(uint160(user)), uint256(7)))));
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.FailedToWithdraw.selector);
+
+        // Act
+        coreContract.withdraw();
+    }
+
+    function testWithdrawTransfersFundsToTheUser(uint64 expectedBalance) external {
+        // Arrange
+        vm.assume(expectedBalance != 0);
+        vm.deal(address(coreContract), expectedBalance);
+
+        // Equivalent to setting rentals[mockAddress] to expectedBalance
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(uint160(mockAddress)), uint256(7)))));
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(expectedBalance)));
+
+        vm.prank(mockAddress);
+
+        // Act
+        coreContract.withdraw();
+
+        // Assert
+        assertEq(mockAddress.balance, uint256(expectedBalance));
+    }
+
+    function testWithdrawDecreasesTheContractBalance(uint64 transferAmount) external {
+        // Arrange
+        vm.assume(transferAmount != 0);
+        vm.deal(address(coreContract), 100000 ether);
+
+        // Equivalent to setting rentals[mockAddress] to expectedBalance
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(uint160(mockAddress)), uint256(7)))));
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(transferAmount)));
+
+        uint256 expectedBalance = address(coreContract).balance - uint256(transferAmount);
+        vm.prank(mockAddress);
+
+        // Act
+        coreContract.withdraw();
+
+        // Assert
+        assertEq(address(coreContract).balance, expectedBalance);
+    }
 }

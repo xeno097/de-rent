@@ -71,4 +71,9 @@ library Errors {
      * @dev Thrown when sender tries to approve a rental request that does not have status set to {RentalStatus.Pending} .
      */
     error CannotApproveNotPendingRentalRequest();
+
+    /**
+     * @dev Thrown when sender tries withdraw his/her funds but the transfer fails.
+     */
+    error FailedToWithdraw();
 }
