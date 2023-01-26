@@ -77,6 +77,11 @@ interface ICore {
     function signalMissedPayment(uint256 rental) external;
 
     /**
+     * @dev Allows sender to score the property and its owner after a `rental` has been completed.
+     */
+    function reviewRental(uint256 rental, uint256 rentalScore, uint256 ownerScore) external;
+
+    /**
      * @dev Allows sender to perform the closing steps after `rental` has been completed.
      */
     function completeRental(uint256 rental) external;

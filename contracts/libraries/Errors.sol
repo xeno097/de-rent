@@ -111,4 +111,14 @@ library Errors {
      * @dev Thrown when sender tries to perform an action that requires the rental completion date to be reached.
      */
     error RentalCompletionDateNotReached();
+
+    /**
+     * @dev Thrown when sender tries to perform an action after the rental review date.
+     */
+    error RentalReviewDeadlinePassed();
+
+    /**
+     * @dev Thrown when sender tries to perform an action that before the rental review date.
+     */
+    error RentalReviewDeadlineNotReached();
 }

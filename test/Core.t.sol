@@ -164,7 +164,9 @@ contract CoreTest is Test {
         _setUpOwnerOfMockCall(mockAddress);
 
         // rentals[0].tenant = mockAddress
-        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(uint160(mockAddress))),1);
+        _writeToStorage(
+            address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(uint160(mockAddress))), 1
+        );
 
         vm.prank(user);
 
@@ -195,7 +197,7 @@ contract CoreTest is Test {
         _setUpOwnerOfMockCall(mockAddress);
 
         // properties[0].published = true
-        _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)),1);
+        _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)), 1);
 
         // properties[0].rentPrice = Constants.MIN_RENT_PRICE
         _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(Constants.MIN_RENT_PRICE));
@@ -212,7 +214,7 @@ contract CoreTest is Test {
         _setUpOwnerOfMockCall(mockAddress);
 
         // properties[0].published = true
-        _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)),1);
+        _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)), 1);
 
         // properties[0].rentPrice = Constants.MIN_RENT_PRICE
         _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(Constants.MIN_RENT_PRICE));
@@ -353,14 +355,22 @@ contract CoreTest is Test {
         _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)), 4);
 
         // rentals[0].rentPrice = Constants.MIN_RENT_PRICE
-        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(Constants.MIN_RENT_PRICE)));
+        _writeToStorage(
+            address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(Constants.MIN_RENT_PRICE))
+        );
 
         // rentals[0].availableDeposits = Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS
-        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS),2);
+        _writeToStorage(
+            address(coreContract),
+            RENTALS_MAPPING_BASE_STORAGE_SLOT,
+            bytes32(Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS),
+            2
+        );
 
         // Equivalent to setting rentals[0].tenant to mockAddress
-        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(uint160(mockAddress))),1);
-
+        _writeToStorage(
+            address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(uint160(mockAddress))), 1
+        );
 
         vm.prank(user);
     }
@@ -676,6 +686,69 @@ contract CoreTest is Test {
         assertEq(availableDeposits, expectedNumberOfDeposits);
     }
 
+    // reviewRental
+    function testCannotReviewRentalIfNotPropertyTenant(address user) external {
+        // Arrange
+        vm.assume(user != address(0));
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.NotPropertyTenant.selector);
+
+        // Act
+        coreContract.reviewRental(0, 1, 1);
+    }
+
+    function testCannotReviewRentalIfRentalRequestHasNotBeenApproved(address user) external {
+        // Arrange
+        vm.prank(user);
+
+        // rentals[0].tenant = user
+        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(uint160(user))), 1);
+
+        // Assert
+        vm.expectRevert(Errors.RentalNotApproved.selector);
+
+        // Act
+        coreContract.reviewRental(0, 1, 1);
+    }
+
+    function testCannotReviewRentalBeforeContractExpiry(address user) external {
+        // Arrange
+        vm.prank(user);
+
+        // rentals[0].tenant = user
+        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(uint160(user))), 1);
+
+        // rentals[0].status = RentalStatus.Approved
+        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(2)), 4);
+
+        // Assert
+        vm.expectRevert(Errors.RentalCompletionDateNotReached.selector);
+
+        // Act
+        coreContract.reviewRental(0, 1, 1);
+    }
+
+    function testCannotReviewRentalAfterRentalReviewDate(address user) external {
+        // Arrange
+        vm.prank(user);
+
+        // rentals[0].tenant = user
+        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(uint160(user))), 1);
+
+        // rentals[0].status = RentalStatus.Approved
+        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(2)), 4);
+
+        vm.warp(Constants.CONTRACT_DURATION + 3 days);
+
+        // Assert
+        vm.expectRevert(Errors.RentalReviewDeadlinePassed.selector);
+
+        // Act
+        coreContract.reviewRental(0, 1, 1);
+    }
+
     // completeRental()
     function testCannotCompleteRentalIfNotPropertyOwner(address user) external {
         // Arrange
@@ -715,6 +788,24 @@ contract CoreTest is Test {
 
         // Assert
         vm.expectRevert(Errors.RentalCompletionDateNotReached.selector);
+
+        // Act
+        coreContract.completeRental(0);
+    }
+
+    function testCannotCompleteRentalIfRentalReviewDealineIsNotReached(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // rentals[0].status = RentalStatus.Approved
+        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(2)), 4);
+
+        vm.prank(user);
+
+        vm.warp(Constants.CONTRACT_DURATION + 1 days);
+
+        // Assert
+        vm.expectRevert(Errors.RentalReviewDeadlineNotReached.selector);
 
         // Act
         coreContract.completeRental(0);

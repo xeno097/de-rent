@@ -14,7 +14,8 @@ contract Core is ICore {
     enum RentalStatus {
         Free,
         Pending,
-        Approved
+        Approved,
+        Completed
     }
 
     struct Property {
@@ -64,6 +65,13 @@ contract Core is ICore {
     modifier requireApprovedRentalRequest(uint256 request) {
         if (rentals[request].status != RentalStatus.Approved) {
             revert Errors.RentalNotApproved();
+        }
+        _;
+    }
+
+    modifier requireRentalCompletionDateReached(uint256 request) {
+        if (block.timestamp <= rentals[request].createdAt + Constants.CONTRACT_DURATION) {
+            revert Errors.RentalCompletionDateNotReached();
         }
         _;
     }
@@ -231,13 +239,42 @@ contract Core is ICore {
     }
 
     /**
-     * @dev see {ICore-completeRental}.
+     * @dev see {ICore-reviewRental}.
      */
-    function completeRental(uint256 rental) external onlyPropertyOwner(rental) requireApprovedRentalRequest(rental) {
+    function reviewRental(uint256 rental, uint256 rentalScore, uint256 ownerScore)
+        external
+        onlyPropertyTenant(rental)
+        requireApprovedRentalRequest(rental)
+        requireRentalCompletionDateReached(rental)
+    {
         Rental memory property = rentals[rental];
 
-        if (block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION) {
-            revert Errors.RentalCompletionDateNotReached();
+        if (block.timestamp > property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
+            revert Errors.RentalReviewDeadlinePassed();
+        }
+
+        address owner = propertyInstance.ownerOf(rental);
+
+        property.status = RentalStatus.Completed;
+        rentals[rental] = property;
+
+        reputationInstance.scoreUser(owner, ownerScore);
+        reputationInstance.scoreProperty(rental, rentalScore);
+    }
+
+    /**
+     * @dev see {ICore-completeRental}.
+     */
+    function completeRental(uint256 rental)
+        external
+        onlyPropertyOwner(rental)
+        requireApprovedRentalRequest(rental)
+        requireRentalCompletionDateReached(rental)
+    {
+        Rental memory property = rentals[rental];
+
+        if (block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
+            revert Errors.RentalReviewDeadlineNotReached();
         }
 
         balances[property.tenant] = property.rentPrice * property.availableDeposits;
