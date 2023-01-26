@@ -11,10 +11,6 @@ contract Core is ICore {
     IProperty propertyInstance;
     IReputation reputationInstance;
 
-    uint256 CONTRACT_DURATION = 52 weeks; // ~ 1 year
-    uint256 public RENTAL_REQUEST_NUMBER_OF_DEPOSITS = 2;
-    uint256 public MIN_RENT_PRICE = 0.02 ether;
-
     enum RentalStatus {
         Free,
         Pending,
@@ -100,11 +96,11 @@ contract Core is ICore {
             revert Errors.CannotRentHiddenProperty();
         }
 
-        if (msg.value != RENTAL_REQUEST_NUMBER_OF_DEPOSITS * property.rentPrice) {
+        if (msg.value != Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS * property.rentPrice) {
             revert Errors.IncorrectDeposit();
         }
 
-        rental.availableDeposits = RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
+        rental.availableDeposits = Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
         rental.rentPrice = property.rentPrice;
         rental.status = RentalStatus.Pending;
         rental.tenant = msg.sender;
@@ -154,7 +150,7 @@ contract Core is ICore {
      * @dev see {ICore-createProperty}.
      */
     function createProperty(string memory uri, uint256 rentPrice) external {
-        if (rentPrice < MIN_RENT_PRICE) {
+        if (rentPrice < Constants.MIN_RENT_PRICE) {
             revert Errors.IncorrectRentPrice();
         }
 
@@ -183,7 +179,7 @@ contract Core is ICore {
     function payRent(uint256 rental) external payable onlyPropertyTenant(rental) requireApprovedRentalRequest(rental) {
         Rental memory property = rentals[rental];
 
-        if (block.timestamp > property.createdAt + CONTRACT_DURATION) {
+        if (block.timestamp > property.createdAt + Constants.CONTRACT_DURATION) {
             revert Errors.CannotPayRentAfterContractExpiry();
         }
 
@@ -240,7 +236,7 @@ contract Core is ICore {
     function completeRental(uint256 rental) external onlyPropertyOwner(rental) requireApprovedRentalRequest(rental) {
         Rental memory property = rentals[rental];
 
-        if (block.timestamp <= property.createdAt + CONTRACT_DURATION) {
+        if (block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION) {
             revert Errors.RentalCompletionDateNotReached();
         }
 

@@ -11,8 +11,8 @@ contract CoreTest is Test {
     address constant mockAddress = address(97);
 
     string constant ozOwnableContractError = "Ownable: caller is not the owner";
-    bytes32 constant RENTALS_MAPPING_BASE_STORAGE_SLOT = keccak256(abi.encode(uint256(0), uint256(6)));
-    bytes32 constant PROPERTIES_MAPPING_BASE_STORAGE_SLOT = keccak256(abi.encode(uint256(0), uint256(5)));
+    bytes32 constant RENTALS_MAPPING_BASE_STORAGE_SLOT = keccak256(abi.encode(uint256(0), uint256(3)));
+    bytes32 constant PROPERTIES_MAPPING_BASE_STORAGE_SLOT = keccak256(abi.encode(uint256(0), uint256(2)));
 
     event RentalRequested(uint256 indexed request);
     event RentalRequestApproved(uint256 indexed request);
@@ -805,7 +805,7 @@ contract CoreTest is Test {
 
         // balances[user] = expectedBalance
         _writeToStorage(
-            address(coreContract), keccak256(abi.encode(uint256(uint160(user)), uint256(7))), bytes32(uint256(1))
+            address(coreContract), keccak256(abi.encode(uint256(uint160(user)), uint256(4))), bytes32(uint256(1))
         );
 
         vm.prank(user);
@@ -824,7 +824,7 @@ contract CoreTest is Test {
         // balances[mockAddress] = expectedBalance
         _writeToStorage(
             address(coreContract),
-            keccak256(abi.encode(uint256(uint160(mockAddress)), uint256(7))),
+            keccak256(abi.encode(uint256(uint160(mockAddress)), uint256(4))),
             bytes32(uint256(expectedBalance))
         );
 
