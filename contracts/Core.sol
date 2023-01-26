@@ -265,21 +265,22 @@ contract Core is ICore {
     /**
      * @dev see {ICore-completeRental}.
      */
-    function completeRental(uint256 rental)
+    function completeRental(uint256 rental, uint256 scoreUser)
         external
         onlyPropertyOwner(rental)
-        requireApprovedRentalRequest(rental)
         requireRentalCompletionDateReached(rental)
     {
         Rental memory property = rentals[rental];
 
-        if (block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
+        if (property.status == RentalStatus.Completed ||  block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
             revert Errors.RentalReviewDeadlineNotReached();
         }
 
         balances[property.tenant] = property.rentPrice * property.availableDeposits;
 
         delete rentals[rental];
+
+        reputationInstance.scoreUser(property.tenant, scoreUser);
     }
 
     /**

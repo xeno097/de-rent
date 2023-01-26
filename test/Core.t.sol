@@ -761,20 +761,7 @@ contract CoreTest is Test {
         vm.expectRevert(Errors.NotPropertyOwner.selector);
 
         // Act
-        coreContract.completeRental(0);
-    }
-
-    function testCannotCompleteRentalIfRentalIsNotApproved(address user) external {
-        // Arrange
-        _setUpOwnerOfMockCall(user);
-
-        vm.prank(user);
-
-        // Assert
-        vm.expectRevert(Errors.RentalNotApproved.selector);
-
-        // Act
-        coreContract.completeRental(0);
+        coreContract.completeRental(0,1);
     }
 
     function testCannotCompleteRentalIfRentalCompletionDateIsNotReached(address user) external {
@@ -790,7 +777,22 @@ contract CoreTest is Test {
         vm.expectRevert(Errors.RentalCompletionDateNotReached.selector);
 
         // Act
-        coreContract.completeRental(0);
+        coreContract.completeRental(0,1);
+    }
+
+    function testCannotCompleteRentalIfRentalIsNotCompleted(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        vm.prank(user);
+
+        vm.warp(Constants.CONTRACT_DURATION + 1 days);
+
+        // Assert
+        vm.expectRevert(Errors.RentalReviewDeadlineNotReached.selector);
+
+        // Act
+        coreContract.completeRental(0,1);
     }
 
     function testCannotCompleteRentalIfRentalReviewDealineIsNotReached(address user) external {
@@ -808,7 +810,7 @@ contract CoreTest is Test {
         vm.expectRevert(Errors.RentalReviewDeadlineNotReached.selector);
 
         // Act
-        coreContract.completeRental(0);
+        coreContract.completeRental(0,1);
     }
 
     function _setupSuccessCompleteRentalTests(address user) internal {
@@ -845,7 +847,7 @@ contract CoreTest is Test {
         uint256 expectedBalance = Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
 
         // Act
-        coreContract.completeRental(0);
+        coreContract.completeRental(0,1);
 
         // Assert
         uint256 balance = coreContract.balances(mockAddress);
@@ -858,7 +860,7 @@ contract CoreTest is Test {
         _setupSuccessCompleteRentalTests(user);
 
         // Act
-        coreContract.completeRental(0);
+        coreContract.completeRental(0,1);
 
         // Assert
         (
