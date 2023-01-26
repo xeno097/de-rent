@@ -199,8 +199,7 @@ contract CoreTest is Test {
         coreContract.requestRental(0);
     }
 
-    function testRequestRental(address user) external {
-        // Arrange
+    function _setupSuccessRequestRentalTests(address user) internal returns (uint256) {
         vm.assume(user != mockAddress);
         _setUpOwnerOfMockCall(mockAddress);
 
@@ -214,6 +213,13 @@ contract CoreTest is Test {
 
         uint256 deposit = Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
         hoax(user, deposit);
+
+        return deposit;
+    }
+
+    function testRequestRental(address user) external {
+        // Arrange
+        uint256 deposit = _setupSuccessRequestRentalTests(user);
 
         // Act
         coreContract.requestRental{value: deposit}(0);
@@ -225,19 +231,7 @@ contract CoreTest is Test {
 
     function testRequestRentalEmitsRentalRequested(address user) external {
         // Arrange
-        vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
-
-        // Equivalent to setting properties[0].published to true
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(5)))) + 1);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
-
-        // Equivalent to setting properties[0].rentPrice to 0.02 ether
-        storageSlot = keccak256(abi.encode(uint256(0), uint256(5)));
-        vm.store(address(coreContract), storageSlot, bytes32(Constants.MIN_RENT_PRICE));
-
-        uint256 deposit = Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
-        hoax(user, deposit);
+        uint256 deposit = _setupSuccessRequestRentalTests(user);
 
         // Assert
         vm.expectEmit(true, false, false, true);
@@ -280,8 +274,7 @@ contract CoreTest is Test {
         coreContract.approveRentalRequest(0);
     }
 
-    function testApproveRentalRequest(address user) external {
-        // Arrange
+    function _setupSuccessApproveRentalRequest(address user) internal {
         _setUpOwnerOfMockCall(user);
 
         // Equivalent to setting rentals[0].status to RentalStatus.Pending
@@ -289,6 +282,11 @@ contract CoreTest is Test {
         vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
 
         vm.prank(user);
+    }
+
+    function testApproveRentalRequest(address user) external {
+        // Arrange
+        _setupSuccessApproveRentalRequest(user);
 
         // Act
         coreContract.approveRentalRequest(0);
@@ -302,13 +300,7 @@ contract CoreTest is Test {
 
     function testApproveRentalRequestEmitsRentalRequestApproved(address user) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
-
-        // Equivalent to setting rentals[0].status to RentalStatus.Pending
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
-
-        vm.prank(user);
+        _setupSuccessApproveRentalRequest(user);
 
         // Assert
         vm.expectEmit(true, false, false, true);
@@ -351,15 +343,31 @@ contract CoreTest is Test {
         coreContract.rejectRentalRequest(0);
     }
 
-    function testRejectRentalRequest(address user) external {
-        // Arrange
+    function _setupSuccessRejectRentalRequestTests(address user) internal {
         _setUpOwnerOfMockCall(user);
 
         // Equivalent to setting rentals[0].status to RentalStatus.Pending
         bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
         vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
 
+        // Equivalent to setting rentals[0].rentPrice to Constants.MIN_RENT_PRICE
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(Constants.MIN_RENT_PRICE)));
+
+        // Equivalent to setting rentals[0].availableDeposits to Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 2);
+        vm.store(address(coreContract), storageSlot, bytes32(Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS));
+
+        // Equivalent to setting rentals[0].tenant to mockAddress
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(mockAddress))));
+
         vm.prank(user);
+    }
+
+    function testRejectRentalRequest(address user) external {
+        // Arrange
+        _setupSuccessRejectRentalRequestTests(user);
 
         // Act
         coreContract.rejectRentalRequest(0);
@@ -384,27 +392,9 @@ contract CoreTest is Test {
 
     function testRejectRentalRequestIncreasesTenantBalance(address user) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setupSuccessRejectRentalRequestTests(user);
 
         uint256 expectedBalance = Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
-
-        // Equivalent to setting rentals[0].status to RentalStatus.Pending
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
-
-        // Equivalent to setting rentals[0].rentPrice to Constants.MIN_RENT_PRICE
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(Constants.MIN_RENT_PRICE)));
-
-        // Equivalent to setting rentals[0].availableDeposits to Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 2);
-        vm.store(address(coreContract), storageSlot, bytes32(Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS));
-
-        // Equivalent to setting rentals[0].tenant to mockAddress
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(mockAddress))));
-
-        vm.prank(user);
 
         // Act
         coreContract.rejectRentalRequest(0);
@@ -416,13 +406,7 @@ contract CoreTest is Test {
 
     function testRejectRentalRequestEmitsRentalRequestApproved(address user) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
-
-        // Equivalent to setting rentals[0].status to RentalStatus.Pending
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
-
-        vm.prank(user);
+        _setupSuccessRejectRentalRequestTests(user);
 
         // Assert
         vm.expectEmit(true, false, false, true);
@@ -565,15 +549,14 @@ contract CoreTest is Test {
         coreContract.payRent{value: invalidDeposit}(0);
     }
 
-    function testPayRentIncreasesTheOwnerBalance(address user) external {
-        // Arrange
+    function _setupSuccessPayRentTests(address user) internal {
         _setUpOwnerOfMockCall(mockAddress);
 
         // Equivalent to setting rentals[0].tenant to user
         bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
         vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
 
-        // Equivalent to setting rentals[0].paymentDate to block.timestamp - 1 days
+        // Equivalent to setting rentals[0].paymentDate to block.timestamp
         storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
         vm.store(address(coreContract), storageSlot, bytes32(block.timestamp));
 
@@ -586,6 +569,11 @@ contract CoreTest is Test {
         vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
 
         hoax(user, Constants.MIN_RENT_PRICE);
+    }
+
+    function testPayRentIncreasesTheOwnerBalance(address user) external {
+        // Arrange
+        _setupSuccessPayRentTests(user);
 
         // Act
         coreContract.payRent{value: Constants.MIN_RENT_PRICE}(0);
@@ -598,27 +586,9 @@ contract CoreTest is Test {
 
     function testPayRentUpdatesThePayDateForTheRental(address user) external {
         // Arrange
-        _setUpOwnerOfMockCall(mockAddress);
+        _setupSuccessPayRentTests(user);
 
         uint256 currentPayDate = block.timestamp;
-
-        // Equivalent to setting rentals[0].tenant to user
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(user))));
-
-        // Equivalent to setting rentals[0].paymentDate to block.timestamp
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 3);
-        vm.store(address(coreContract), storageSlot, bytes32(currentPayDate));
-
-        // Equivalent to setting rentals[0].rentPrice to Constants.MIN_RENT_PRICE
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
-        vm.store(address(coreContract), storageSlot, bytes32(Constants.MIN_RENT_PRICE));
-
-        // Equivalent to setting rentals[0].status to RentalStatus.Approved
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
-
-        hoax(user, Constants.MIN_RENT_PRICE);
 
         // Act
         coreContract.payRent{value: Constants.MIN_RENT_PRICE}(0);
@@ -629,7 +599,7 @@ contract CoreTest is Test {
         assertEq(paymentDate, currentPayDate + Constants.MONTH);
     }
 
-    // signalMissedPayment
+    // signalMissedPayment()
     function testCannotSignalMissedPaymentIfNotPropertyOwner(address user) external {
         // Arrange
         vm.assume(user != mockAddress);
@@ -674,8 +644,7 @@ contract CoreTest is Test {
         coreContract.signalMissedPayment(0);
     }
 
-    function testSignalMissedPaymentIncreasesTheOwnerBalanceIfAvailableDepositIsGreaterThan0(address user) external {
-        // Arrange
+    function _setupSuccessSignalMissedPaymentTests(address user) internal {
         _setUpOwnerOfMockCall(user);
 
         // Equivalent to setting rentals[0].status to RentalStatus.Approved
@@ -693,6 +662,11 @@ contract CoreTest is Test {
         vm.warp(37 days);
 
         vm.prank(user);
+    }
+
+    function testSignalMissedPaymentIncreasesTheOwnerBalanceIfAvailableDepositIsGreaterThan0(address user) external {
+        // Arrange
+        _setupSuccessSignalMissedPaymentTests(user);
 
         // Act
         coreContract.signalMissedPayment(0);
@@ -706,25 +680,9 @@ contract CoreTest is Test {
         external
     {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setupSuccessSignalMissedPaymentTests(user);
 
         uint256 expectedNumberOfDeposits = Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS - 1;
-
-        // Equivalent to setting rentals[0].status to RentalStatus.Approved
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
-
-        // Equivalent to setting rentals[0].rentPrice to Constants.MIN_RENT_PRICE
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
-        vm.store(address(coreContract), storageSlot, bytes32(Constants.MIN_RENT_PRICE));
-
-        // Equivalent to setting rentals[0].availableDeposits to Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 2);
-        vm.store(address(coreContract), storageSlot, bytes32(Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS));
-
-        vm.warp(37 days);
-
-        vm.prank(user);
 
         // Act
         coreContract.signalMissedPayment(0);
@@ -779,11 +737,8 @@ contract CoreTest is Test {
         coreContract.completeRental(0);
     }
 
-    function testCompleteIncrementsTenantBalance(address user) external {
-        // Arrange
+    function _setupSuccessCompleteRentalTests(address user) internal {
         _setUpOwnerOfMockCall(user);
-
-        uint256 expectedBalance = Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
 
         // Equivalent to setting rentals[0].status to RentalStatus.Approved
         bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
@@ -804,6 +759,13 @@ contract CoreTest is Test {
         vm.warp(53 weeks);
 
         vm.prank(user);
+    }
+
+    function testCompleteRentalIncrementsTenantBalance(address user) external {
+        // Arrange
+        _setupSuccessCompleteRentalTests(user);
+
+        uint256 expectedBalance = Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
 
         // Act
         coreContract.completeRental(0);
@@ -816,19 +778,7 @@ contract CoreTest is Test {
 
     function testCompleteRentalCleansTheRentalData(address user) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
-
-        // Equivalent to setting rentals[0].status to RentalStatus.Approved
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
-
-        // Equivalent to setting rentals[0].tenant to mockAddress
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 1);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(uint160(mockAddress))));
-
-        vm.warp(53 weeks);
-
-        vm.prank(user);
+        _setupSuccessCompleteRentalTests(user);
 
         // Act
         coreContract.completeRental(0);
@@ -863,11 +813,11 @@ contract CoreTest is Test {
         coreContract.withdraw();
     }
 
-    function testThrowsFailedToWithdrawIfTranferFails(address user) external {
+    function testWithdrawRevertsWithFailedToWithdrawIfTranferFails(address user) external {
         // Arrange
         vm.mockCall(user, abi.encode(""), abi.encode());
 
-        // Equivalent to setting rentals[user] to expectedBalance
+        // Equivalent to setting balances[user] to 1
         bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(uint160(user)), uint256(7)))));
         vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
 
@@ -880,16 +830,20 @@ contract CoreTest is Test {
         coreContract.withdraw();
     }
 
-    function testWithdrawTransfersFundsToTheUser(uint64 expectedBalance) external {
-        // Arrange
+    function _setupSuccessWithdrawTests(uint64 expectedBalance) internal {
         vm.assume(expectedBalance != 0);
-        vm.deal(address(coreContract), expectedBalance);
+        vm.deal(address(coreContract), 100000 ether);
 
         // Equivalent to setting rentals[mockAddress] to expectedBalance
         bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(uint160(mockAddress)), uint256(7)))));
         vm.store(address(coreContract), storageSlot, bytes32(uint256(expectedBalance)));
 
         vm.prank(mockAddress);
+    }
+
+    function testWithdrawTransfersFundsToTheUser(uint64 expectedBalance) external {
+        // Arrange
+        _setupSuccessWithdrawTests(expectedBalance);
 
         // Act
         coreContract.withdraw();
@@ -900,15 +854,9 @@ contract CoreTest is Test {
 
     function testWithdrawDecreasesTheContractBalance(uint64 transferAmount) external {
         // Arrange
-        vm.assume(transferAmount != 0);
-        vm.deal(address(coreContract), 100000 ether);
-
-        // Equivalent to setting rentals[mockAddress] to expectedBalance
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(uint160(mockAddress)), uint256(7)))));
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(transferAmount)));
+        _setupSuccessWithdrawTests(transferAmount);
 
         uint256 expectedBalance = address(coreContract).balance - uint256(transferAmount);
-        vm.prank(mockAddress);
 
         // Act
         coreContract.withdraw();
