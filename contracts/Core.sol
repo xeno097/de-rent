@@ -213,7 +213,11 @@ contract Core is ICore {
     /**
      * @dev see {ICore-signalMissedPayment}.
      */
-    function signalMissedPayment(uint256 rental) external onlyPropertyOwner(rental) requireApprovedRentalRequest(rental){
+    function signalMissedPayment(uint256 rental)
+        external
+        onlyPropertyOwner(rental)
+        requireApprovedRentalRequest(rental)
+    {
         Rental memory property = rentals[rental];
 
         if (block.timestamp <= property.paymentDate + Constants.LATE_PAYMENT_DEADLINE) {
