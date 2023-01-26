@@ -5,6 +5,7 @@ import "@contracts/interfaces/ICore.sol";
 import "@contracts/interfaces/IProperty.sol";
 import "@contracts/interfaces/IReputation.sol";
 import "@contracts/libraries/Errors.sol";
+import "@contracts/libraries/Constants.sol";
 
 contract Core is ICore {
     IProperty propertyInstance;
@@ -38,10 +39,6 @@ contract Core is ICore {
     mapping(uint256 => Rental) public rentals;
     mapping(address => uint256) public balances;
 
-    uint256 public constant MONTH = 30 days;
-    uint256 public constant ON_TIME_PAYMENT_DEADLINE = 2 days;
-    uint256 public constant LATE_PAYMENT_DEADLINE = ON_TIME_PAYMENT_DEADLINE + 2 days;
-
     constructor(address _propertyAddress, address _reputationAddress) {
         propertyInstance = IProperty(_propertyAddress);
         reputationInstance = IReputation(_reputationAddress);
@@ -64,6 +61,13 @@ contract Core is ICore {
     modifier onlyPendingRentalRequest(uint256 request) {
         if (rentals[request].status != RentalStatus.Pending) {
             revert Errors.CannotApproveNotPendingRentalRequest();
+        }
+        _;
+    }
+
+    modifier requireApprovedRentalRequest(uint256 request) {
+        if (rentals[request].status != RentalStatus.Approved) {
+            revert Errors.RentalNotApproved();
         }
         _;
     }
@@ -121,7 +125,7 @@ contract Core is ICore {
         Rental memory rental = rentals[request];
 
         rental.createdAt = block.timestamp;
-        rental.paymentDate = block.timestamp + MONTH;
+        rental.paymentDate = block.timestamp + Constants.MONTH;
         rental.status = RentalStatus.Approved;
 
         rentals[request] = rental;
@@ -176,12 +180,8 @@ contract Core is ICore {
     /**
      * @dev see {ICore-payRent}.
      */
-    function payRent(uint256 rental) external payable onlyPropertyTenant(rental) {
+    function payRent(uint256 rental) external payable onlyPropertyTenant(rental) requireApprovedRentalRequest(rental) {
         Rental memory property = rentals[rental];
-
-        if (property.status != RentalStatus.Approved) {
-            revert Errors.RentalNotApproved();
-        }
 
         if (block.timestamp > property.createdAt + CONTRACT_DURATION) {
             revert Errors.CannotPayRentAfterContractExpiry();
@@ -191,7 +191,7 @@ contract Core is ICore {
             revert Errors.PayRentDateNotReached();
         }
 
-        if (block.timestamp > property.paymentDate + LATE_PAYMENT_DEADLINE) {
+        if (block.timestamp > property.paymentDate + Constants.LATE_PAYMENT_DEADLINE) {
             revert Errors.CannotPayRentAfterLatePaymentDeadline();
         }
 
@@ -202,10 +202,10 @@ contract Core is ICore {
         address owner = propertyInstance.ownerOf(rental);
         balances[owner] += msg.value;
 
-        property.paymentDate += MONTH;
+        property.paymentDate += Constants.MONTH;
         rentals[rental] = property;
 
-        bool paidOnTime = block.timestamp <= property.paymentDate + ON_TIME_PAYMENT_DEADLINE;
+        bool paidOnTime = block.timestamp <= property.paymentDate + Constants.ON_TIME_PAYMENT_DEADLINE;
 
         reputationInstance.scoreUserPaymentPerformance(msg.sender, paidOnTime);
     }
@@ -213,14 +213,10 @@ contract Core is ICore {
     /**
      * @dev see {ICore-signalMissedPayment}.
      */
-    function signalMissedPayment(uint256 rental) external onlyPropertyOwner(rental) {
+    function signalMissedPayment(uint256 rental) external onlyPropertyOwner(rental) requireApprovedRentalRequest(rental){
         Rental memory property = rentals[rental];
 
-        if (property.status != RentalStatus.Approved) {
-            revert Errors.RentalNotApproved();
-        }
-
-        if (block.timestamp <= property.paymentDate + LATE_PAYMENT_DEADLINE) {
+        if (block.timestamp <= property.paymentDate + Constants.LATE_PAYMENT_DEADLINE) {
             revert Errors.RentLatePaymentDeadlineNotReached();
         }
 
@@ -229,7 +225,7 @@ contract Core is ICore {
             property.availableDeposits -= 1;
         }
 
-        property.paymentDate += MONTH;
+        property.paymentDate += Constants.MONTH;
         rentals[rental] = property;
         reputationInstance.scoreUserPaymentPerformance(msg.sender, false);
     }
@@ -237,12 +233,8 @@ contract Core is ICore {
     /**
      * @dev see {ICore-completeRental}.
      */
-    function completeRental(uint256 rental) external onlyPropertyOwner(rental) {
+    function completeRental(uint256 rental) external onlyPropertyOwner(rental) requireApprovedRentalRequest(rental) {
         Rental memory property = rentals[rental];
-
-        if (property.status != RentalStatus.Approved) {
-            revert Errors.RentalNotApproved();
-        }
 
         if (block.timestamp <= property.createdAt + CONTRACT_DURATION) {
             revert Errors.RentalCompletionDateNotReached();
