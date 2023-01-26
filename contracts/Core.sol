@@ -39,7 +39,7 @@ contract Core is ICore {
     mapping(address => uint256) public balances;
 
     uint256 public constant MONTH = 30 days;
-    uint256 public constant ON_TIME_PAYMENT_DEADLINE = 3 days;
+    uint256 public constant ON_TIME_PAYMENT_DEADLINE = 2 days;
     uint256 public constant LATE_PAYMENT_DEADLINE = ON_TIME_PAYMENT_DEADLINE + 2 days;
 
     constructor(address _propertyAddress, address _reputationAddress) {
@@ -125,7 +125,6 @@ contract Core is ICore {
         rental.status = RentalStatus.Approved;
 
         rentals[request] = rental;
-        balances[msg.sender] += rental.rentPrice * rental.availableDeposits;
 
         emit RentalRequestApproved(request);
     }
@@ -180,7 +179,7 @@ contract Core is ICore {
     function payRent(uint256 rental) external payable onlyPropertyTenant(rental) {
         Rental memory property = rentals[rental];
 
-        if(property.status != RentalStatus.Approved){
+        if (property.status != RentalStatus.Approved) {
             revert Errors.RentalNotApproved();
         }
 
@@ -206,9 +205,33 @@ contract Core is ICore {
         property.paymentDate += MONTH;
         rentals[rental] = property;
 
-        bool paidOnTime = block.timestamp <= ON_TIME_PAYMENT_DEADLINE;
+        bool paidOnTime = block.timestamp <= property.paymentDate + ON_TIME_PAYMENT_DEADLINE;
 
         reputationInstance.scoreUserPaymentPerformance(msg.sender, paidOnTime);
+    }
+
+    /**
+     * @dev see {ICore-signalMissedPayment}.
+     */
+    function signalMissedPayment(uint256 rental) external onlyPropertyOwner(rental) {
+        Rental memory property = rentals[rental];
+
+        if (property.status != RentalStatus.Approved) {
+            revert Errors.RentalNotApproved();
+        }
+
+        if (block.timestamp <= property.paymentDate + LATE_PAYMENT_DEADLINE) {
+            revert Errors.RentLatePaymentDeadlineNotReached();
+        }
+
+        if (property.availableDeposits > 0) {
+            balances[msg.sender] += property.rentPrice;
+            property.availableDeposits -= 1;
+        }
+
+        property.paymentDate += MONTH;
+        rentals[rental] = property;
+        reputationInstance.scoreUserPaymentPerformance(msg.sender, false);
     }
 
     /**

@@ -313,36 +313,6 @@ contract CoreTest is Test {
         assertEq(paymentDate, createdAt + 30 days);
     }
 
-    function testApproveRentalRequestIncreasesOwnerBalance(address user) external {
-        // Arrange
-        _setUpOwnerOfMockCall(user);
-
-        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
-        uint256 RENTAL_REQUEST_NUMBER_OF_DEPOSITS = coreContract.RENTAL_REQUEST_NUMBER_OF_DEPOSITS();
-        uint256 expectedBalance = MIN_RENT_PRICE * RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
-
-        // Equivalent to setting rentals[0].status to RentalStatus.Pending
-        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(1)));
-
-        // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
-        vm.store(address(coreContract), storageSlot, bytes32(uint256(MIN_RENT_PRICE)));
-
-        // Equivalent to setting rentals[0].availableDeposits to RENTAL_REQUEST_NUMBER_OF_DEPOSITS
-        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 2);
-        vm.store(address(coreContract), storageSlot, bytes32(RENTAL_REQUEST_NUMBER_OF_DEPOSITS));
-
-        vm.prank(user);
-
-        // Act
-        coreContract.approveRentalRequest(0);
-
-        // Assert
-        uint256 balance = coreContract.balances(user);
-        assertEq(balance, expectedBalance);
-    }
-
     function testApproveRentalRequestEmitsRentalRequestApproved(address user) external {
         // Arrange
         _setUpOwnerOfMockCall(user);
@@ -676,6 +646,116 @@ contract CoreTest is Test {
         (,,, uint256 paymentDate,,) = coreContract.rentals(0);
 
         assertEq(paymentDate, currentPayDate + 30 days);
+    }
+
+    // signalMissedPayment
+    function testCannotSignalMissedPaymentIfNotPropertyOwner(address user) external {
+        // Arrange
+        vm.assume(user != mockAddress);
+        _setUpOwnerOfMockCall(mockAddress);
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.NotPropertyOwner.selector);
+
+        // Act
+        coreContract.signalMissedPayment(0);
+    }
+
+    function testCannotSignalMissedPaymentIfRentalIsNotApproved(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.RentalNotApproved.selector);
+
+        // Act
+        coreContract.signalMissedPayment(0);
+    }
+
+    function testCannotSignalMissedPaymentBeforeLatePaymentDeadline(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
+
+        vm.prank(user);
+
+        // Assert
+        vm.expectRevert(Errors.RentLatePaymentDeadlineNotReached.selector);
+
+        // Act
+        coreContract.signalMissedPayment(0);
+    }
+
+    function testSignalMissedPaymentIncreasesTheOwnerBalanceIfAvailableDepositIsGreaterThan0(address user) external {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+        uint256 RENTAL_REQUEST_NUMBER_OF_DEPOSITS = coreContract.RENTAL_REQUEST_NUMBER_OF_DEPOSITS();
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
+
+        // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        // Equivalent to setting rentals[0].availableDeposits to RENTAL_REQUEST_NUMBER_OF_DEPOSITS
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 2);
+        vm.store(address(coreContract), storageSlot, bytes32(RENTAL_REQUEST_NUMBER_OF_DEPOSITS));
+
+        vm.warp(37 days);
+
+        vm.prank(user);
+
+        // Act
+        coreContract.signalMissedPayment(0);
+
+        // Assert
+        uint256 balance = coreContract.balances(user);
+        assertEq(balance, MIN_RENT_PRICE);
+    }
+
+    function testSignalMissedPaymentDecreasesTheNumberOfAvailableDepositsIfAvailableDepositIsGreaterThan0(address user)
+        external
+    {
+        // Arrange
+        _setUpOwnerOfMockCall(user);
+
+        uint256 MIN_RENT_PRICE = coreContract.MIN_RENT_PRICE();
+        uint256 RENTAL_REQUEST_NUMBER_OF_DEPOSITS = coreContract.RENTAL_REQUEST_NUMBER_OF_DEPOSITS();
+        uint256 expectedNumberOfDeposits = RENTAL_REQUEST_NUMBER_OF_DEPOSITS - 1;
+
+        // Equivalent to setting rentals[0].status to RentalStatus.Approved
+        bytes32 storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 4);
+        vm.store(address(coreContract), storageSlot, bytes32(uint256(2)));
+
+        // Equivalent to setting rentals[0].rentPrice to MIN_RENT_PRICE
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))));
+        vm.store(address(coreContract), storageSlot, bytes32(MIN_RENT_PRICE));
+
+        // Equivalent to setting rentals[0].availableDeposits to RENTAL_REQUEST_NUMBER_OF_DEPOSITS
+        storageSlot = bytes32(uint256(keccak256(abi.encode(uint256(0), uint256(6)))) + 2);
+        vm.store(address(coreContract), storageSlot, bytes32(RENTAL_REQUEST_NUMBER_OF_DEPOSITS));
+
+        vm.warp(37 days);
+
+        vm.prank(user);
+
+        // Act
+        coreContract.signalMissedPayment(0);
+
+        // Assert
+        (,, uint256 availableDeposits,,,) = coreContract.rentals(0);
+        assertEq(availableDeposits, expectedNumberOfDeposits);
     }
 
     // completeRental()
