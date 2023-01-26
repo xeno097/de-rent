@@ -93,6 +93,11 @@ library Errors {
     error CannotPayRentAfterLatePaymentDeadline();
 
     /**
+     * @dev Thrown when the late payment deadline has not been reached yet.
+     */
+    error RentLatePaymentDeadlineNotReached();
+
+    /**
      * @dev Thrown when sender tries to pay rent after a year has passed.
      */
     error CannotPayRentAfterContractExpiry();
