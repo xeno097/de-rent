@@ -85,12 +85,12 @@ library Errors {
     /**
      * @dev Thrown when sender tries to pay rent before the pay date is reached.
      */
-    error PayRentDateNotReached();
+    error RentPaymentDateNotReached();
 
     /**
      * @dev Thrown when sender tries to pay rent after the pay date deadline is reached.
      */
-    error CannotPayRentAfterLatePaymentDeadline();
+    error RentLatePaymentDeadlineReached();
 
     /**
      * @dev Thrown when the late payment deadline has not been reached yet.
@@ -100,7 +100,7 @@ library Errors {
     /**
      * @dev Thrown when sender tries to pay rent after a year has passed.
      */
-    error CannotPayRentAfterContractExpiry();
+    error RentContractExpiryDateReached();
 
     /**
      * @dev Thrown when sender tries to perform an action that requires the rental to be approved.
@@ -115,7 +115,7 @@ library Errors {
     /**
      * @dev Thrown when sender tries to perform an action after the rental review date.
      */
-    error RentalReviewDeadlinePassed();
+    error RentalReviewDeadlineReached();
 
     /**
      * @dev Thrown when sender tries to perform an action that before the rental review date.

@@ -469,7 +469,7 @@ contract CoreTest is Test {
         vm.prank(user);
 
         // Assert
-        vm.expectRevert(Errors.CannotPayRentAfterContractExpiry.selector);
+        vm.expectRevert(Errors.RentContractExpiryDateReached.selector);
 
         // Act
         coreContract.payRent(0);
@@ -490,13 +490,13 @@ contract CoreTest is Test {
         vm.prank(user);
 
         // Assert
-        vm.expectRevert(Errors.PayRentDateNotReached.selector);
+        vm.expectRevert(Errors.RentPaymentDateNotReached.selector);
 
         // Act
         coreContract.payRent(0);
     }
 
-    function testCannotPayRentAfterLatePaymentDeadline(address user) external {
+    function testRentLatePaymentDeadlineReached(address user) external {
         // Arrange
 
         // rentals[0].tenant = user
@@ -513,7 +513,7 @@ contract CoreTest is Test {
         vm.prank(user);
 
         // Assert
-        vm.expectRevert(Errors.CannotPayRentAfterLatePaymentDeadline.selector);
+        vm.expectRevert(Errors.RentLatePaymentDeadlineReached.selector);
 
         // Act
         coreContract.payRent(0);
@@ -743,7 +743,7 @@ contract CoreTest is Test {
         vm.warp(Constants.CONTRACT_DURATION + 3 days);
 
         // Assert
-        vm.expectRevert(Errors.RentalReviewDeadlinePassed.selector);
+        vm.expectRevert(Errors.RentalReviewDeadlineReached.selector);
 
         // Act
         coreContract.reviewRental(0, 1, 1);

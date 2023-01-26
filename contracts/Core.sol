@@ -188,15 +188,15 @@ contract Core is ICore {
         Rental memory property = rentals[rental];
 
         if (block.timestamp > property.createdAt + Constants.CONTRACT_DURATION) {
-            revert Errors.CannotPayRentAfterContractExpiry();
+            revert Errors.RentContractExpiryDateReached();
         }
 
         if (block.timestamp < property.paymentDate) {
-            revert Errors.PayRentDateNotReached();
+            revert Errors.RentPaymentDateNotReached();
         }
 
         if (block.timestamp > property.paymentDate + Constants.LATE_PAYMENT_DEADLINE) {
-            revert Errors.CannotPayRentAfterLatePaymentDeadline();
+            revert Errors.RentLatePaymentDeadlineReached();
         }
 
         if (msg.value != property.rentPrice) {
@@ -250,7 +250,7 @@ contract Core is ICore {
         Rental memory property = rentals[rental];
 
         if (block.timestamp > property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
-            revert Errors.RentalReviewDeadlinePassed();
+            revert Errors.RentalReviewDeadlineReached();
         }
 
         address owner = propertyInstance.ownerOf(rental);
