@@ -6,34 +6,14 @@ import "@contracts/interfaces/IProperty.sol";
 import "@contracts/interfaces/IReputation.sol";
 import "@contracts/libraries/Errors.sol";
 import "@contracts/libraries/Constants.sol";
+import "@contracts/libraries/DataTypes.sol";
 
 contract Core is ICore {
     IProperty propertyInstance;
     IReputation reputationInstance;
 
-    enum RentalStatus {
-        Free,
-        Pending,
-        Approved,
-        Completed
-    }
-
-    struct Property {
-        uint256 rentPrice;
-        bool published;
-    }
-
-    struct Rental {
-        uint256 rentPrice;
-        address tenant;
-        uint256 availableDeposits;
-        uint256 paymentDate;
-        RentalStatus status;
-        uint256 createdAt;
-    }
-
-    mapping(uint256 => Property) public properties;
-    mapping(uint256 => Rental) public rentals;
+    mapping(uint256 => DataTypes.Property) public properties;
+    mapping(uint256 => DataTypes.Rental) public rentals;
     mapping(address => uint256) public balances;
 
     constructor(address _propertyAddress, address _reputationAddress) {
@@ -56,14 +36,14 @@ contract Core is ICore {
     }
 
     modifier onlyPendingRentalRequest(uint256 request) {
-        if (rentals[request].status != RentalStatus.Pending) {
+        if (rentals[request].status != DataTypes.RentalStatus.Pending) {
             revert Errors.CannotApproveNotPendingRentalRequest();
         }
         _;
     }
 
     modifier requireApprovedRentalRequest(uint256 request) {
-        if (rentals[request].status != RentalStatus.Approved) {
+        if (rentals[request].status != DataTypes.RentalStatus.Approved) {
             revert Errors.RentalNotApproved();
         }
         _;
@@ -92,13 +72,13 @@ contract Core is ICore {
             revert Errors.CannotRentOwnProperty();
         }
 
-        Rental memory rental = rentals[propertyId];
+        DataTypes.Rental memory rental = rentals[propertyId];
 
         if (rental.tenant != address(0)) {
             revert Errors.CannotRentAlreadyRentedProperty();
         }
 
-        Property memory property = properties[propertyId];
+        DataTypes.Property memory property = properties[propertyId];
 
         if (!property.published) {
             revert Errors.CannotRentHiddenProperty();
@@ -110,7 +90,7 @@ contract Core is ICore {
 
         rental.availableDeposits = Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
         rental.rentPrice = property.rentPrice;
-        rental.status = RentalStatus.Pending;
+        rental.status = DataTypes.RentalStatus.Pending;
         rental.tenant = msg.sender;
 
         rentals[propertyId] = rental;
@@ -126,11 +106,11 @@ contract Core is ICore {
         onlyPropertyOwner(request)
         onlyPendingRentalRequest(request)
     {
-        Rental memory rental = rentals[request];
+        DataTypes.Rental memory rental = rentals[request];
 
         rental.createdAt = block.timestamp;
         rental.paymentDate = block.timestamp + Constants.MONTH;
-        rental.status = RentalStatus.Approved;
+        rental.status = DataTypes.RentalStatus.Approved;
 
         rentals[request] = rental;
 
@@ -145,7 +125,7 @@ contract Core is ICore {
         onlyPropertyOwner(request)
         onlyPendingRentalRequest(request)
     {
-        Rental memory rental = rentals[request];
+        DataTypes.Rental memory rental = rentals[request];
 
         balances[rental.tenant] += rental.rentPrice * rental.availableDeposits;
 
@@ -164,7 +144,7 @@ contract Core is ICore {
 
         uint256 propertyId = propertyInstance.mint(msg.sender, uri);
 
-        properties[propertyId] = Property({rentPrice: rentPrice, published: true});
+        properties[propertyId] = DataTypes.Property({rentPrice: rentPrice, published: true});
     }
 
     /**
@@ -185,7 +165,7 @@ contract Core is ICore {
      * @dev see {ICore-payRent}.
      */
     function payRent(uint256 rental) external payable onlyPropertyTenant(rental) requireApprovedRentalRequest(rental) {
-        Rental memory property = rentals[rental];
+        DataTypes.Rental memory property = rentals[rental];
 
         if (block.timestamp > property.createdAt + Constants.CONTRACT_DURATION) {
             revert Errors.RentContractExpiryDateReached();
@@ -222,7 +202,7 @@ contract Core is ICore {
         onlyPropertyOwner(rental)
         requireApprovedRentalRequest(rental)
     {
-        Rental memory property = rentals[rental];
+        DataTypes.Rental memory property = rentals[rental];
 
         if (block.timestamp <= property.paymentDate + Constants.LATE_PAYMENT_DEADLINE) {
             revert Errors.RentLatePaymentDeadlineNotReached();
@@ -247,7 +227,7 @@ contract Core is ICore {
         requireApprovedRentalRequest(rental)
         requireRentalCompletionDateReached(rental)
     {
-        Rental memory property = rentals[rental];
+        DataTypes.Rental memory property = rentals[rental];
 
         if (block.timestamp > property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
             revert Errors.RentalReviewDeadlineReached();
@@ -255,7 +235,7 @@ contract Core is ICore {
 
         address owner = propertyInstance.ownerOf(rental);
 
-        property.status = RentalStatus.Completed;
+        property.status = DataTypes.RentalStatus.Completed;
         rentals[rental] = property;
 
         reputationInstance.scoreUser(owner, ownerScore);
@@ -270,9 +250,9 @@ contract Core is ICore {
         onlyPropertyOwner(rental)
         requireRentalCompletionDateReached(rental)
     {
-        Rental memory property = rentals[rental];
+        DataTypes.Rental memory property = rentals[rental];
 
-        if (property.status == RentalStatus.Completed ||  block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
+        if (property.status == DataTypes.RentalStatus.Completed ||  block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
             revert Errors.RentalReviewDeadlineNotReached();
         }
 

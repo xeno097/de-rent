@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "@contracts/Core.sol";
 import "@contracts/libraries/Errors.sol";
 import "@contracts/libraries/Constants.sol";
+import "@contracts/libraries/DataTypes.sol";
 
 contract CoreTest is Test {
     Core coreContract;
@@ -298,8 +299,8 @@ contract CoreTest is Test {
         coreContract.approveRentalRequest(0);
 
         // Assert
-        (,,, uint256 paymentDate, Core.RentalStatus status, uint256 createdAt) = coreContract.rentals(0);
-        assertEq(uint8(status), uint8(Core.RentalStatus.Approved));
+        (,,, uint256 paymentDate, DataTypes.RentalStatus status, uint256 createdAt) = coreContract.rentals(0);
+        assertEq(uint8(status), uint8(DataTypes.RentalStatus.Approved));
         assertGe(createdAt, uint256(0));
         assertEq(paymentDate, createdAt + Constants.MONTH);
     }
@@ -388,7 +389,7 @@ contract CoreTest is Test {
             address tenant,
             uint256 availableDeposits,
             uint256 paymentDate,
-            Core.RentalStatus status,
+            DataTypes.RentalStatus status,
             uint256 createdAt
         ) = coreContract.rentals(0);
 
@@ -396,7 +397,7 @@ contract CoreTest is Test {
         assertEq(tenant, address(0));
         assertEq(availableDeposits, 0);
         assertEq(paymentDate, 0);
-        assertEq(uint8(status), uint8(Core.RentalStatus.Free));
+        assertEq(uint8(status), uint8(DataTypes.RentalStatus.Free));
         assertEq(createdAt, 0);
     }
 
@@ -868,7 +869,7 @@ contract CoreTest is Test {
             address tenant,
             uint256 availableDeposits,
             uint256 paymentDate,
-            Core.RentalStatus status,
+            DataTypes.RentalStatus status,
             uint256 createdAt
         ) = coreContract.rentals(0);
 
