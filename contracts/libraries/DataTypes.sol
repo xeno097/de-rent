@@ -22,4 +22,13 @@ library DataTypes {
         RentalStatus status;
         uint256 createdAt;
     }
+
+    struct ListingProperty {
+        uint256 id;
+        uint256 rentPrice;
+        address owner;
+        bool published;
+        string uri;
+        RentalStatus status;
+    }
 }
