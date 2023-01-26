@@ -88,7 +88,7 @@ library Errors {
     error RentPaymentDateNotReached();
 
     /**
-     * @dev Thrown when sender tries to pay rent after the pay date deadline is reached.
+     * @dev Thrown when sender tries to pay rent after the late payment deadline is reached.
      */
     error RentLatePaymentDeadlineReached();
 
@@ -118,7 +118,7 @@ library Errors {
     error RentalReviewDeadlineReached();
 
     /**
-     * @dev Thrown when sender tries to perform an action that before the rental review date.
+     * @dev Thrown when sender tries to perform an action before the rental review date.
      */
     error RentalReviewDeadlineNotReached();
 }
