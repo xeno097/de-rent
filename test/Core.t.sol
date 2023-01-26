@@ -40,7 +40,7 @@ contract CoreTest is Test {
     }
 
     // createProperty()
-    function testCannotCreatePropertyWithRentLowerThanMintRentPrice(uint256 expectedRentPrice) external {
+    function testCannotCreatePropertyWithRentPriceLowerThanMintRentPrice(uint256 expectedRentPrice) external {
         // Arrange
         vm.assume(expectedRentPrice < Constants.MIN_RENT_PRICE);
 
@@ -251,7 +251,7 @@ contract CoreTest is Test {
     }
 
     // approveRentalRequest()
-    function testCannotApproveRentalRequestForNotOwnedProperty(address user) external {
+    function testCannotApproveRentalRequestIfNotPropertyOwner(address user) external {
         // Arrange
         vm.assume(user != mockAddress);
         _setUpOwnerOfMockCall(mockAddress);
@@ -318,7 +318,7 @@ contract CoreTest is Test {
     }
 
     // rejectRentalRequest()
-    function testCannotRejectRentalRequestForNotOwnedProperty(address user) external {
+    function testCannotRejectRentalRequestIfNotPropertyOwner(address user) external {
         // Arrange
         vm.assume(user != mockAddress);
         _setUpOwnerOfMockCall(mockAddress);
