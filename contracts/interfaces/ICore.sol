@@ -74,7 +74,7 @@ interface ICore {
     /**
      * @dev Allows sender to report that a payment was not made on time for `rental`.
      */
-     function signalMissedPayment(uint256 rental) external;
+    function signalMissedPayment(uint256 rental) external;
 
     /**
      * @dev Allows sender to perform the closing steps after `rental` has been completed.
