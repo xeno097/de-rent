@@ -10,7 +10,7 @@ interface IProperty is IERC721 {
      * Requirements:
      * - `user` cannot be the 0 address.
      */
-    function mint(address user, string memory uri) external;
+    function mint(address user, string memory uri) external returns (uint256 property);
 
     /**
      * @dev Verifies that `property` exists.

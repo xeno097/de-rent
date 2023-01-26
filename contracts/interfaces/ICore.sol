@@ -45,30 +45,21 @@ interface ICore {
      *
      *  Emits a {RentalRequested} event.
      */
-    function requestRental(uint256 property) external;
+    function requestRental(uint256 property) external payable;
 
     /**
-     * @dev Allows sender to publish `property` for rent if he/she is the owner and it is not already published.
+     * @dev Allows sender to update the `property` visibility if he/she is `property` owner.
      *
      * Requirements:
      * - `property`  must exist.
      *
      */
-    function publishProperty(uint256 property) external;
-
-    /**
-     * @dev Allows sender to hide `property` for rent if he/she is the owner and it is not already hidden.
-     *
-     * Requirements:
-     * - `property`  must exist.
-     *
-     */
-    function hideProperty(uint256 property) external;
+    function setPropertyVisibility(uint256 property, bool visibility) external;
 
     /**
      * @dev Allows sender to mint a new property with the given metadata uri.
      */
-    function createProperty(string memory uri) external;
+    function createProperty(string memory uri, uint256 rentPrice) external;
 
     /**
      * @dev Allows sender to update `property` uri metadata if he/she is the owner and `property` exists.
@@ -78,7 +69,22 @@ interface ICore {
     /**
      * @dev Allows sender to pay the rent for `rental`.
      */
-    function payRent(uint256 rental) external;
+    function payRent(uint256 rental) external payable;
+
+    /**
+     * @dev Allows sender to report that a payment was not made on time for `rental`.
+     */
+    function signalMissedPayment(uint256 rental) external;
+
+    /**
+     * @dev Allows sender to score the property and its owner after a `rental` has been completed.
+     */
+    function reviewRental(uint256 rental, uint256 rentalScore, uint256 ownerScore) external;
+
+    /**
+     * @dev Allows sender to perform the closing steps after `rental` has been completed.
+     */
+    function completeRental(uint256 rental, uint256 scoreUser) external;
 
     /**
      * @dev Allows sender to withdraw his/her balance.
