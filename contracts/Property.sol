@@ -19,6 +19,13 @@ contract Property is IProperty, ERC721URIStorage, IERC4906, Ownable {
     }
 
     /**
+     * @dev see {IProperty-getTotalPropertyCount}.
+     */
+    function getTotalPropertyCount() external view returns (uint256) {
+        return _tokenCounter.current();
+    }
+
+    /**
      * @dev see {IProperty-mint}.
      */
     function mint(address user, string memory uri) external onlyOwner returns (uint256 property) {

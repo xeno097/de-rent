@@ -5,6 +5,11 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
 interface IProperty is IERC721 {
     /**
+     * @dev Returns the total number of minted properties.
+     */
+    function getTotalPropertyCount() external view returns (uint256);
+
+    /**
      * @dev Mints a new property owned by `user` with URIStorage set to `uri`.
      *
      * Requirements:
