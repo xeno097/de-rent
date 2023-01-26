@@ -252,7 +252,10 @@ contract Core is ICore {
     {
         DataTypes.Rental memory property = rentals[rental];
 
-        if (property.status == DataTypes.RentalStatus.Completed ||  block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION + 2 days) {
+        if (
+            property.status == DataTypes.RentalStatus.Completed
+                || block.timestamp <= property.createdAt + Constants.CONTRACT_DURATION + 2 days
+        ) {
             revert Errors.RentalReviewDeadlineNotReached();
         }
 
