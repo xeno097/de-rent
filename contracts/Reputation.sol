@@ -7,18 +7,16 @@ import "@contracts/interfaces/IReputation.sol";
 import "@contracts/interfaces/IProperty.sol";
 import "@contracts/libraries/Errors.sol";
 import "@contracts/libraries/Constants.sol";
+import "@contracts/libraries/ScoreCounters.sol";
 
 contract Reputation is IReputation, Ownable {
+    using ScoreCounters for ScoreCounters.ScoreCounter;
+
     IProperty propertyInstance;
 
-    struct ScoreCounter {
-        uint256 totalScore;
-        uint256 voteCount;
-    }
-
-    mapping(address => ScoreCounter) private _userScores;
-    mapping(address => ScoreCounter) private _userPaymentPerformanceScores;
-    mapping(uint256 => ScoreCounter) private _propertyScores;
+    mapping(address => ScoreCounters.ScoreCounter) private _userScores;
+    mapping(address => ScoreCounters.ScoreCounter) private _userPaymentPerformanceScores;
+    mapping(uint256 => ScoreCounters.ScoreCounter) private _propertyScores;
 
     constructor(address _coreAddress, address _propertyInstanceAddress) {
         _transferOwnership(_coreAddress);
@@ -39,13 +37,6 @@ contract Reputation is IReputation, Ownable {
         _;
     }
 
-    modifier scoreInRange(uint256 score) {
-        if (score < Constants.MIN_SCORE || score > Constants.MAX_SCORE) {
-            revert Errors.ScoreValueOutOfRange(Constants.MIN_SCORE, Constants.MAX_SCORE);
-        }
-        _;
-    }
-
     /**
      * @dev see {IReputation-decimals}.
      */
@@ -57,45 +48,28 @@ contract Reputation is IReputation, Ownable {
      * @dev see {IReputation-getUserScore}.
      */
     function getUserScore(address user) external view not0Address(user) returns (uint256) {
-        return _computeScore(_userScores[user]);
+        return _userScores[user].current();
     }
 
     /**
      * @dev see {IReputation-getPropertyScore}.
      */
     function getPropertyScore(uint256 property) external view propertyExist(property) returns (uint256) {
-        return _computeScore(_propertyScores[property]);
+        return _propertyScores[property].current();
     }
 
     /**
      * @dev see {IReputation-getUserPaymentPerformanceScore}.
      */
     function getUserPaymentPerformanceScore(address user) external view not0Address(user) returns (uint256) {
-        return _computeScore(_userPaymentPerformanceScores[user]);
-    }
-
-    /**
-     * @dev Computes the average score.
-     */
-    function _computeScore(ScoreCounter memory scores) internal pure returns (uint256) {
-        if (scores.voteCount == 0) {
-            return Constants.MAX_SCORE * Constants.SCORE_MULTIPLIER;
-        }
-
-        return (scores.totalScore * Constants.SCORE_MULTIPLIER) / scores.voteCount;
+        return _userPaymentPerformanceScores[user].current();
     }
 
     /**
      * @dev see {IReputation-scoreProperty}.
      */
-    function scoreProperty(uint256 property, uint256 score)
-        external
-        onlyOwner
-        propertyExist(property)
-        scoreInRange(score)
-    {
-        _propertyScores[property].totalScore += score;
-        _propertyScores[property].voteCount += 1;
+    function scoreProperty(uint256 property, uint256 score) external onlyOwner propertyExist(property) {
+        _propertyScores[property].add(score);
 
         emit PropertyScored(property, score);
     }
@@ -103,9 +77,8 @@ contract Reputation is IReputation, Ownable {
     /**
      * @dev see {IReputation-scoreUser}.
      */
-    function scoreUser(address user, uint256 score) external onlyOwner not0Address(user) scoreInRange(score) {
-        _userScores[user].totalScore += score;
-        _userScores[user].voteCount += 1;
+    function scoreUser(address user, uint256 score) external onlyOwner not0Address(user) {
+        _userScores[user].add(score);
 
         emit UserScored(user, score);
     }
@@ -116,8 +89,7 @@ contract Reputation is IReputation, Ownable {
     function scoreUserPaymentPerformance(address user, bool paidOnTime) external onlyOwner not0Address(user) {
         uint256 score = paidOnTime ? Constants.MAX_SCORE : Constants.MIN_SCORE;
 
-        _userPaymentPerformanceScores[user].totalScore += score;
-        _userPaymentPerformanceScores[user].voteCount += 1;
+        _userPaymentPerformanceScores[user].add(score);
 
         emit UserPaymentPerformanceScored(user, score);
     }
