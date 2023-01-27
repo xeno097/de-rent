@@ -30,7 +30,7 @@ contract ReputationTest is Test {
         uint256 expectedResult = 9;
 
         // Act
-        uint256 res = reputationContract.decimals();
+        uint256 res = Constants.DECIMALS;
 
         //
         assertEq(res, expectedResult);
@@ -64,16 +64,16 @@ contract ReputationTest is Test {
 
     function testCannotScoreUserWithScoreOutsideOfMinScoreMaxScore(address user, uint256 score) external {
         // Arrange
-        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
-        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
 
         vm.assume(user != address(0));
-        vm.assume(score < MIN_SCORE || score > MAX_SCORE);
+        vm.assume(score < Constants.MIN_SCORE || score > Constants.MAX_SCORE);
 
         vm.prank(mockAddress);
 
         // Assert
-        vm.expectRevert(abi.encodeWithSelector(Errors.ScoreValueOutOfRange.selector, MIN_SCORE, MAX_SCORE));
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.ScoreValueOutOfRange.selector, Constants.MIN_SCORE, Constants.MAX_SCORE)
+        );
 
         // Act
         reputationContract.scoreUser(user, score);
@@ -81,11 +81,9 @@ contract ReputationTest is Test {
 
     function testScoreUser(address user, uint256 score) external {
         // Arrange
-        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
-        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
 
         vm.assume(user != address(0));
-        vm.assume(MIN_SCORE <= score && score <= MAX_SCORE);
+        vm.assume(Constants.MIN_SCORE <= score && score <= Constants.MAX_SCORE);
 
         vm.prank(mockAddress);
 
@@ -95,11 +93,9 @@ contract ReputationTest is Test {
 
     function testScoreUserEmitsUserScoredEvent(address user, uint256 score) external {
         // Arrange
-        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
-        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
 
         vm.assume(user != address(0));
-        vm.assume(MIN_SCORE <= score && score <= MAX_SCORE);
+        vm.assume(Constants.MIN_SCORE <= score && score <= Constants.MAX_SCORE);
 
         vm.prank(mockAddress);
 
@@ -142,15 +138,15 @@ contract ReputationTest is Test {
     function testCannotScorePropertyWithScoreOutsideOfMinScoreMaxScore(uint256 property, uint256 score) external {
         // Arrange
         _setUpExistsMockCall(property, true);
-        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
-        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
 
-        vm.assume(score < MIN_SCORE || score > MAX_SCORE);
+        vm.assume(score < Constants.MIN_SCORE || score > Constants.MAX_SCORE);
 
         vm.prank(mockAddress);
 
         // Assert
-        vm.expectRevert(abi.encodeWithSelector(Errors.ScoreValueOutOfRange.selector, MIN_SCORE, MAX_SCORE));
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.ScoreValueOutOfRange.selector, Constants.MIN_SCORE, Constants.MAX_SCORE)
+        );
 
         // Act
         reputationContract.scoreProperty(property, score);
@@ -159,10 +155,8 @@ contract ReputationTest is Test {
     function testScoreProperty(uint256 property, uint256 score) external {
         // Arrange
         _setUpExistsMockCall(property, true);
-        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
-        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
 
-        vm.assume(MIN_SCORE <= score && score <= MAX_SCORE);
+        vm.assume(Constants.MIN_SCORE <= score && score <= Constants.MAX_SCORE);
 
         vm.prank(mockAddress);
 
@@ -173,10 +167,8 @@ contract ReputationTest is Test {
     function testScorePropertyEmitsPropertyScored(uint256 property, uint256 score) external {
         // Arrange
         _setUpExistsMockCall(property, true);
-        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
-        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
 
-        vm.assume(MIN_SCORE <= score && score <= MAX_SCORE);
+        vm.assume(Constants.MIN_SCORE <= score && score <= Constants.MAX_SCORE);
 
         vm.prank(mockAddress);
 
@@ -227,9 +219,7 @@ contract ReputationTest is Test {
         // Arrange
         vm.assume(user != address(0));
 
-        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
-        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
-        uint256 score = paidOnTime ? MAX_SCORE : MIN_SCORE;
+        uint256 score = paidOnTime ? Constants.MAX_SCORE : Constants.MIN_SCORE;
 
         vm.prank(mockAddress);
 
@@ -257,7 +247,7 @@ contract ReputationTest is Test {
     function testGetUserScoreReturnsTheMaximumScoreIfUserHas0RegisteredScores(address user) external {
         // Arrange
         vm.assume(user != address(0));
-        uint256 expectedResult = reputationContract.MAX_SCORE() * (10 ** reputationContract.decimals());
+        uint256 expectedResult = Constants.MAX_SCORE * (10 ** Constants.DECIMALS);
 
         // Act
         uint256 res = reputationContract.getUserScore(user);
@@ -271,8 +261,7 @@ contract ReputationTest is Test {
         vm.assume(user != address(0));
 
         uint256[3] memory scores = [uint256(4), uint256(3), uint256(5)];
-        uint256 expectedResult =
-            ((scores[0] + scores[1] + scores[2]) * (10 ** reputationContract.decimals())) / scores.length;
+        uint256 expectedResult = ((scores[0] + scores[1] + scores[2]) * (10 ** Constants.DECIMALS)) / scores.length;
 
         for (uint256 i = 0; i < scores.length; i++) {
             vm.prank(mockAddress);
@@ -302,7 +291,7 @@ contract ReputationTest is Test {
     function testGetPropertyScoreReturnsTheMaximumScoreIfPropertyHas0RegisteredScores(uint256 property) external {
         // Arrange
         _setUpExistsMockCall(property, true);
-        uint256 expectedResult = reputationContract.MAX_SCORE() * (10 ** reputationContract.decimals());
+        uint256 expectedResult = Constants.MAX_SCORE * (10 ** Constants.DECIMALS);
 
         // Act
         uint256 res = reputationContract.getPropertyScore(property);
@@ -315,8 +304,7 @@ contract ReputationTest is Test {
         // Arrange
         _setUpExistsMockCall(property, true);
         uint256[3] memory scores = [uint256(4), uint256(3), uint256(5)];
-        uint256 expectedResult =
-            ((scores[0] + scores[1] + scores[2]) * (10 ** reputationContract.decimals())) / scores.length;
+        uint256 expectedResult = ((scores[0] + scores[1] + scores[2]) * (10 ** Constants.DECIMALS)) / scores.length;
 
         for (uint256 i = 0; i < scores.length; i++) {
             vm.prank(mockAddress);
@@ -347,7 +335,7 @@ contract ReputationTest is Test {
     {
         // Arrange
         vm.assume(user != address(0));
-        uint256 expectedResult = reputationContract.MAX_SCORE() * (10 ** reputationContract.decimals());
+        uint256 expectedResult = Constants.MAX_SCORE * (10 ** Constants.DECIMALS);
 
         // Act
         uint256 res = reputationContract.getUserPaymentPerformanceScore(user);
@@ -359,12 +347,11 @@ contract ReputationTest is Test {
     function testGetUserPaymentPerformanceScore(address user) external {
         // Arrange
         vm.assume(user != address(0));
-        uint256 MIN_SCORE = reputationContract.MIN_SCORE();
-        uint256 MAX_SCORE = reputationContract.MAX_SCORE();
 
         bool[3] memory scores = [true, false, true];
-        uint256 expectedResult =
-            ((MAX_SCORE + MIN_SCORE + MAX_SCORE) * (10 ** reputationContract.decimals())) / scores.length;
+        uint256 expectedResult = (
+            (Constants.MAX_SCORE + Constants.MIN_SCORE + Constants.MAX_SCORE) * (10 ** Constants.DECIMALS)
+        ) / scores.length;
 
         for (uint256 i = 0; i < scores.length; i++) {
             vm.prank(mockAddress);
