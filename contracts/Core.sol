@@ -12,8 +12,8 @@ contract Core is ICore {
     IProperty propertyInstance;
     IReputation reputationInstance;
 
-    mapping(uint256 => DataTypes.Property) public properties;
-    mapping(uint256 => DataTypes.Rental) public rentals;
+    mapping(uint256 => DataTypes.Property) properties;
+    mapping(uint256 => DataTypes.Rental) rentals;
     mapping(address => uint256) public balances;
 
     constructor(address _propertyAddress, address _reputationAddress) {
@@ -42,6 +42,13 @@ contract Core is ICore {
         _;
     }
 
+    modifier propertyExist(uint256 property) {
+        if (!propertyInstance.exists(property)) {
+            revert Errors.PropertyNotFound();
+        }
+        _;
+    }
+
     modifier requireApprovedRentalRequest(uint256 request) {
         if (rentals[request].status != DataTypes.RentalStatus.Approved) {
             revert Errors.RentalNotApproved();
@@ -54,6 +61,20 @@ contract Core is ICore {
             revert Errors.RentalCompletionDateNotReached();
         }
         _;
+    }
+
+    /**
+     * @dev see {ICore-getPropertyById}.
+     */
+    function getPropertyById(uint256 id) external view propertyExist(id) returns (DataTypes.Property memory) {
+        return properties[id];
+    }
+
+    /**
+     * @dev see {ICore-getRentalById}.
+     */
+    function getRentalById(uint256 id) external view propertyExist(id) returns (DataTypes.Rental memory) {
+        return rentals[id];
     }
 
     /**
