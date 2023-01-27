@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "@contracts/Core.sol";
 import "@contracts/libraries/Errors.sol";
 import "@contracts/libraries/Constants.sol";
+import "@contracts/libraries/DataTypes.sol";
 
 contract CoreTest is Test {
     Core coreContract;
@@ -30,6 +31,10 @@ contract CoreTest is Test {
         vm.mockCall(mockAddress, abi.encodeWithSelector(IERC721.ownerOf.selector), abi.encode(returnData));
     }
 
+    function _setUpExistsMockCall(uint256 property, bool returnValue) private {
+        vm.mockCall(mockAddress, abi.encodeWithSelector(IProperty.exists.selector, property), abi.encode(returnValue));
+    }
+
     function _writeToStorage(address target, bytes32 sslot, bytes32 value, uint256 offset) internal {
         bytes32 storageSlot = bytes32(uint256(sslot) + offset);
         vm.store(target, storageSlot, value);
@@ -37,6 +42,64 @@ contract CoreTest is Test {
 
     function _writeToStorage(address target, bytes32 sslot, bytes32 value) internal {
         _writeToStorage(target, sslot, value, 0);
+    }
+
+    // getPropertyById()
+    function testCannotGetPropertyByIdIfDoesNotExist(uint256 id) external {
+        // Arrange
+        _setUpExistsMockCall(id, false);
+
+        // Assert
+        vm.expectRevert(Errors.PropertyNotFound.selector);
+
+        // Act
+        coreContract.getPropertyById(id);
+    }
+
+    function testGetPropertyById() external {
+        // Arrange
+        uint256 id = 0;
+        _setUpExistsMockCall(id, true);
+
+        // properties[0].rentPrice = Constants.MIN_RENT_PRICE
+        _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(Constants.MIN_RENT_PRICE));
+
+        // properties[0].published = true
+        _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)), 1);
+
+        // Act
+        DataTypes.Property memory property = coreContract.getPropertyById(id);
+
+        // Assert
+        assertEq(property.rentPrice, Constants.MIN_RENT_PRICE);
+        assertEq(property.published, true);
+    }
+
+    // getRentalById()
+    function testCannotGetRentalByIdIfPropertyDoesNotExist(uint256 id) external {
+        // Arrange
+        _setUpExistsMockCall(id, false);
+
+        // Assert
+        vm.expectRevert(Errors.PropertyNotFound.selector);
+
+        // Act
+        coreContract.getPropertyById(id);
+    }
+
+    function testGetRentalById() external {
+        // Arrange
+        uint256 id = 0;
+        _setUpExistsMockCall(id, true);
+
+        // rentals[0].rentPrice = Constants.MIN_RENT_PRICE
+        _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(Constants.MIN_RENT_PRICE));
+
+        // Act
+        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+
+        // Assert
+        assertEq(rental.rentPrice, Constants.MIN_RENT_PRICE);
     }
 
     // createProperty()
@@ -56,14 +119,16 @@ contract CoreTest is Test {
         vm.assume(expectedRentPrice >= Constants.MIN_RENT_PRICE);
         _setUpMintMockCall();
 
+        _setUpExistsMockCall(0, true);
+
         // Act
         coreContract.createProperty("", expectedRentPrice);
 
         // Assert
-        (uint256 rentPrice, bool published) = coreContract.properties(0);
+        DataTypes.Property memory property = coreContract.getPropertyById(0);
 
-        assertEq(rentPrice, expectedRentPrice);
-        assertTrue(published);
+        assertEq(property.rentPrice, expectedRentPrice);
+        assertTrue(property.published);
     }
 
     // updateProperty()
@@ -121,6 +186,7 @@ contract CoreTest is Test {
         // Arrange
         _setUpMintMockCall();
         _setUpOwnerOfMockCall(address(this));
+        _setUpExistsMockCall(0, true);
 
         coreContract.createProperty("", Constants.MIN_RENT_PRICE);
 
@@ -128,8 +194,8 @@ contract CoreTest is Test {
         coreContract.setPropertyVisibility(0, expectedVisibility);
 
         // Assert
-        (, bool visibility) = coreContract.properties(0);
-        assertEq(visibility, expectedVisibility);
+        DataTypes.Property memory property = coreContract.getPropertyById(0);
+        assertEq(property.published, expectedVisibility);
     }
 
     // requestRental()
@@ -213,6 +279,8 @@ contract CoreTest is Test {
         vm.assume(user != mockAddress);
         _setUpOwnerOfMockCall(mockAddress);
 
+        _setUpExistsMockCall(0, true);
+
         // properties[0].published = true
         _writeToStorage(address(coreContract), PROPERTIES_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)), 1);
 
@@ -233,8 +301,8 @@ contract CoreTest is Test {
         coreContract.requestRental{value: deposit}(0);
 
         // Assert
-        (, address tenant,,,,) = coreContract.rentals(0);
-        assertEq(tenant, user);
+        DataTypes.Rental memory rental = coreContract.getRentalById(0);
+        assertEq(rental.tenant, user);
     }
 
     function testRequestRentalEmitsRentalRequested(address user) external {
@@ -284,6 +352,8 @@ contract CoreTest is Test {
     function _setupSuccessApproveRentalRequest(address user) internal {
         _setUpOwnerOfMockCall(user);
 
+        _setUpExistsMockCall(0, true);
+
         // rentals[0].status = RentalStatus.Pending
         _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)), 4);
 
@@ -298,10 +368,10 @@ contract CoreTest is Test {
         coreContract.approveRentalRequest(0);
 
         // Assert
-        (,,, uint256 paymentDate, Core.RentalStatus status, uint256 createdAt) = coreContract.rentals(0);
-        assertEq(uint8(status), uint8(Core.RentalStatus.Approved));
-        assertGe(createdAt, uint256(0));
-        assertEq(paymentDate, createdAt + Constants.MONTH);
+        DataTypes.Rental memory rental = coreContract.getRentalById(0);
+        assertEq(uint8(rental.status), uint8(DataTypes.RentalStatus.Approved));
+        assertGe(rental.createdAt, uint256(0));
+        assertEq(rental.paymentDate, rental.createdAt + Constants.MONTH);
     }
 
     function testApproveRentalRequestEmitsRentalRequestApproved(address user) external {
@@ -351,6 +421,8 @@ contract CoreTest is Test {
     function _setupSuccessRejectRentalRequestTests(address user) internal {
         _setUpOwnerOfMockCall(user);
 
+        _setUpExistsMockCall(0, true);
+
         // rentals[0].status = RentalStatus.Pending
         _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(1)), 4);
 
@@ -383,21 +455,14 @@ contract CoreTest is Test {
         coreContract.rejectRentalRequest(0);
 
         // Assert
-        (
-            uint256 rentPrice,
-            address tenant,
-            uint256 availableDeposits,
-            uint256 paymentDate,
-            Core.RentalStatus status,
-            uint256 createdAt
-        ) = coreContract.rentals(0);
+        DataTypes.Rental memory rental = coreContract.getRentalById(0);
 
-        assertEq(rentPrice, 0);
-        assertEq(tenant, address(0));
-        assertEq(availableDeposits, 0);
-        assertEq(paymentDate, 0);
-        assertEq(uint8(status), uint8(Core.RentalStatus.Free));
-        assertEq(createdAt, 0);
+        assertEq(rental.rentPrice, 0);
+        assertEq(rental.tenant, address(0));
+        assertEq(rental.availableDeposits, 0);
+        assertEq(rental.paymentDate, 0);
+        assertEq(uint8(rental.status), uint8(DataTypes.RentalStatus.Free));
+        assertEq(rental.createdAt, 0);
     }
 
     function testRejectRentalRequestIncreasesTenantBalance(address user) external {
@@ -549,6 +614,8 @@ contract CoreTest is Test {
     function _setupSuccessPayRentTests(address user) internal {
         _setUpOwnerOfMockCall(mockAddress);
 
+        _setUpExistsMockCall(0, true);
+
         // rentals[0].tenant = user
         _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(uint160(user))), 1);
 
@@ -587,9 +654,9 @@ contract CoreTest is Test {
         coreContract.payRent{value: Constants.MIN_RENT_PRICE}(0);
 
         // Assert
-        (,,, uint256 paymentDate,,) = coreContract.rentals(0);
+        DataTypes.Rental memory rental = coreContract.getRentalById(0);
 
-        assertEq(paymentDate, currentPayDate + Constants.MONTH);
+        assertEq(rental.paymentDate, currentPayDate + Constants.MONTH);
     }
 
     // signalMissedPayment()
@@ -639,6 +706,8 @@ contract CoreTest is Test {
     function _setupSuccessSignalMissedPaymentTests(address user) internal {
         _setUpOwnerOfMockCall(user);
 
+        _setUpExistsMockCall(0, true);
+
         // rentals[0].status = RentalStatus.Approved
         _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(2)), 4);
 
@@ -682,8 +751,8 @@ contract CoreTest is Test {
         coreContract.signalMissedPayment(0);
 
         // Assert
-        (,, uint256 availableDeposits,,,) = coreContract.rentals(0);
-        assertEq(availableDeposits, expectedNumberOfDeposits);
+        DataTypes.Rental memory rental = coreContract.getRentalById(0);
+        assertEq(rental.availableDeposits, expectedNumberOfDeposits);
     }
 
     // reviewRental
@@ -761,7 +830,7 @@ contract CoreTest is Test {
         vm.expectRevert(Errors.NotPropertyOwner.selector);
 
         // Act
-        coreContract.completeRental(0,1);
+        coreContract.completeRental(0, 1);
     }
 
     function testCannotCompleteRentalIfRentalCompletionDateIsNotReached(address user) external {
@@ -777,7 +846,7 @@ contract CoreTest is Test {
         vm.expectRevert(Errors.RentalCompletionDateNotReached.selector);
 
         // Act
-        coreContract.completeRental(0,1);
+        coreContract.completeRental(0, 1);
     }
 
     function testCannotCompleteRentalIfRentalIsNotCompleted(address user) external {
@@ -792,7 +861,7 @@ contract CoreTest is Test {
         vm.expectRevert(Errors.RentalReviewDeadlineNotReached.selector);
 
         // Act
-        coreContract.completeRental(0,1);
+        coreContract.completeRental(0, 1);
     }
 
     function testCannotCompleteRentalIfRentalReviewDealineIsNotReached(address user) external {
@@ -810,11 +879,13 @@ contract CoreTest is Test {
         vm.expectRevert(Errors.RentalReviewDeadlineNotReached.selector);
 
         // Act
-        coreContract.completeRental(0,1);
+        coreContract.completeRental(0, 1);
     }
 
     function _setupSuccessCompleteRentalTests(address user) internal {
         _setUpOwnerOfMockCall(user);
+
+        _setUpExistsMockCall(0, true);
 
         // rentals[0].status = RentalStatus.Approved
         _writeToStorage(address(coreContract), RENTALS_MAPPING_BASE_STORAGE_SLOT, bytes32(uint256(2)), 4);
@@ -847,7 +918,7 @@ contract CoreTest is Test {
         uint256 expectedBalance = Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
 
         // Act
-        coreContract.completeRental(0,1);
+        coreContract.completeRental(0, 1);
 
         // Assert
         uint256 balance = coreContract.balances(mockAddress);
@@ -860,24 +931,17 @@ contract CoreTest is Test {
         _setupSuccessCompleteRentalTests(user);
 
         // Act
-        coreContract.completeRental(0,1);
+        coreContract.completeRental(0, 1);
 
         // Assert
-        (
-            uint256 rentPrice,
-            address tenant,
-            uint256 availableDeposits,
-            uint256 paymentDate,
-            Core.RentalStatus status,
-            uint256 createdAt
-        ) = coreContract.rentals(0);
+        DataTypes.Rental memory rental = coreContract.getRentalById(0);
 
-        assertEq(rentPrice, 0);
-        assertEq(tenant, address(0));
-        assertEq(availableDeposits, 0);
-        assertEq(paymentDate, 0);
-        assertEq(uint8(status), uint8(0));
-        assertEq(createdAt, 0);
+        assertEq(rental.rentPrice, 0);
+        assertEq(rental.tenant, address(0));
+        assertEq(rental.availableDeposits, 0);
+        assertEq(rental.paymentDate, 0);
+        assertEq(uint8(rental.status), uint8(0));
+        assertEq(rental.createdAt, 0);
     }
 
     // withdraw()
