@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import "@contracts/libraries/DataTypes.sol";
 import "@contracts/libraries/ScoreCounters.sol";
+import "@contracts/interfaces/IProperty.sol";
 
 struct AppStorage {
     // Core
@@ -13,4 +14,6 @@ struct AppStorage {
     mapping(address => ScoreCounters.ScoreCounter) userScores;
     mapping(address => ScoreCounters.ScoreCounter) userPaymentPerformanceScores;
     mapping(uint256 => ScoreCounters.ScoreCounter) propertyScores;
+    // TODO: remove this after complete porting
+    IProperty propertyInstance;
 }
