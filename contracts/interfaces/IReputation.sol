@@ -71,7 +71,7 @@ interface IReputation {
     function scoreUser(address user, uint256 score) external;
 
     /**
-     * @dev Updates `user` payment Performance score.
+     * @dev Updates `user` payment performance score.
      *
      * Requirements:
      * - `user` cannot be the 0 address.
