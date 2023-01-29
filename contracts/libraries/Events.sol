@@ -16,4 +16,19 @@ library Events {
      * @dev Emitted when the `user` payment performance score gets updated.
      */
     event UserPaymentPerformanceScored(address indexed user, uint256 score);
+
+    /**
+     * @dev Emitted when `request` gets approved.
+     */
+    event RentalRequestApproved(uint256 indexed request);
+
+    /**
+     * @dev Emitted when `request` gets rejected.
+     */
+    event RentalRequestRejected(uint256 indexed request);
+
+    /**
+     * @dev Emitted when `request` gets created.
+     */
+    event RentalRequested(uint256 indexed request);
 }
