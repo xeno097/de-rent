@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import "@contracts/interfaces/IProperty.sol";
 import "@contracts/libraries/DataTypes.sol";
+import "@contracts/libraries/ScoreCounters.sol";
 
 abstract contract BaseTest is Test {
     address constant mockAddress = address(97);
@@ -37,6 +38,49 @@ abstract contract BaseTest is Test {
         bytes32 sslot = keccak256(abi.encode(uint256(uint160(user)), uint256(3)));
 
         _storeScore(target, sslot, totalCount, voteCount);
+    }
+
+    function _createUserPaymentPerfomanceScore(address target, address user, uint256 totalCount, uint256 voteCount)
+        internal
+    {
+        bytes32 sslot = keccak256(abi.encode(uint256(uint160(user)), uint256(4)));
+
+        _storeScore(target, sslot, totalCount, voteCount);
+    }
+
+    function _readUserScore(address target, address user) internal view returns (ScoreCounters.ScoreCounter memory) {
+        bytes32 sslot = keccak256(abi.encode(uint256(uint160(user)), uint256(3)));
+
+        return ScoreCounters.ScoreCounter({
+            _totalScore: uint256(vm.load(target, sslot)),
+            _voteCount: uint256(vm.load(target, bytes32(uint256(sslot) + 1)))
+        });
+    }
+
+    function _readPropertyScore(address target, uint256 property)
+        internal
+        view
+        returns (ScoreCounters.ScoreCounter memory)
+    {
+        bytes32 sslot = keccak256(abi.encode(property, uint256(5)));
+
+        return ScoreCounters.ScoreCounter({
+            _totalScore: uint256(vm.load(target, sslot)),
+            _voteCount: uint256(vm.load(target, bytes32(uint256(sslot) + 1)))
+        });
+    }
+
+    function _readUserPaymentPerfomanceScore(address target, address user)
+        internal
+        view
+        returns (ScoreCounters.ScoreCounter memory)
+    {
+        bytes32 sslot = keccak256(abi.encode(uint256(uint160(user)), uint256(4)));
+
+        return ScoreCounters.ScoreCounter({
+            _totalScore: uint256(vm.load(target, sslot)),
+            _voteCount: uint256(vm.load(target, bytes32(uint256(sslot) + 1)))
+        });
     }
 
     function _createPropertyScore(address target, uint256 property, uint256 totalCount, uint256 voteCount) internal {
