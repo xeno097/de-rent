@@ -83,4 +83,16 @@ abstract contract BaseTest is Test {
         _writeToStorage(target, sslot, bytes32(uint256(rental.status)), 4);
         _writeToStorage(target, sslot, bytes32(rental.createdAt), 5);
     }
+
+    function _createUserBalance(address target, address user, uint256 balance) internal {
+        bytes32 sslot = keccak256(abi.encode(user, uint256(2)));
+
+        _writeToStorage(target, sslot, bytes32(balance));
+    }
+
+    function _readUserBalance(address target, address user) internal view returns (uint256) {
+        bytes32 sslot = keccak256(abi.encode(user, uint256(2)));
+
+        return uint256(vm.load(target, sslot));
+    }
 }
