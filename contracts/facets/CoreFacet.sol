@@ -194,7 +194,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
 
         property.paymentDate += Constants.MONTH;
         s.rentals[rental] = property;
-        s.scoreUserPaymentPerformance(msg.sender, false);
+        s.scoreUserPaymentPerformance(property.tenant, false);
     }
 
     /**

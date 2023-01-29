@@ -14,11 +14,9 @@ import "@contracts/libraries/DataTypes.sol";
 import "@contracts/libraries/Events.sol";
 
 contract CoreFacetTest is BaseTest {
-    CoreFacet coreContract;
-    Diamond diamondProxy;
+    using ScoreCounters for ScoreCounters.ScoreCounter;
 
-    bytes32 constant RENTALS_MAPPING_BASE_STORAGE_SLOT = keccak256(abi.encode(uint256(0), uint256(3)));
-    bytes32 constant PROPERTIES_MAPPING_BASE_STORAGE_SLOT = keccak256(abi.encode(uint256(0), uint256(2)));
+    CoreFacet coreContract;
 
     function setUp() public {
         CoreFacet coreContractInstance = new CoreFacet();
@@ -55,7 +53,7 @@ contract CoreFacetTest is BaseTest {
             initCalldata: abi.encodeWithSelector(DiamondInit.init.selector, address(mockAddress))
         });
 
-        diamondProxy = new Diamond(diamondCut, args);
+        Diamond diamondProxy = new Diamond(diamondCut, args);
         coreContract = CoreFacet(address(diamondProxy));
     }
 
@@ -106,7 +104,7 @@ contract CoreFacetTest is BaseTest {
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
-            tenant: address(13),
+            tenant: mockAddress,
             availableDeposits: Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS,
             paymentDate: block.timestamp,
             status: DataTypes.RentalStatus.Free,
@@ -363,7 +361,7 @@ contract CoreFacetTest is BaseTest {
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
-            tenant: address(13),
+            tenant: mockAddress,
             availableDeposits: Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS,
             paymentDate: block.timestamp,
             status: DataTypes.RentalStatus.Free,
@@ -388,7 +386,7 @@ contract CoreFacetTest is BaseTest {
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
-            tenant: address(13),
+            tenant: mockAddress,
             availableDeposits: Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS,
             paymentDate: block.timestamp,
             status: DataTypes.RentalStatus.Pending,
@@ -448,7 +446,7 @@ contract CoreFacetTest is BaseTest {
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
-            tenant: address(13),
+            tenant: mockAddress,
             availableDeposits: Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS,
             paymentDate: block.timestamp,
             status: DataTypes.RentalStatus.Free,
@@ -707,6 +705,37 @@ contract CoreFacetTest is BaseTest {
         assertEq(rental.paymentDate, currentPayDate + Constants.MONTH);
     }
 
+    function testPayRentUpdatesTheTenantPaymentPerfomanceScore(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessPayRentTests(user, id);
+
+        uint256 baseVoteCount = 3;
+        uint256 baseTotalScore = 11;
+        _createUserPaymentPerfomanceScore(address(coreContract), user, baseTotalScore, baseVoteCount);
+
+        // Act
+        coreContract.payRent{value: Constants.MIN_RENT_PRICE}(id);
+
+        // Assert
+        ScoreCounters.ScoreCounter memory userScore = _readUserPaymentPerfomanceScore(address(coreContract), user);
+
+        assertEq(userScore._totalScore, baseTotalScore + Constants.MAX_SCORE);
+        assertEq(userScore._voteCount, baseVoteCount + 1);
+    }
+
+    function testPayRentEmitsUserPaymentPerformanceScored(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessPayRentTests(user, id);
+
+        // Assert
+        vm.expectEmit(true, true, false, true);
+
+        emit Events.UserPaymentPerformanceScored(user, Constants.MAX_SCORE);
+
+        // Act
+        coreContract.payRent{value: Constants.MIN_RENT_PRICE}(id);
+    }
+
     // signalMissedPayment()
     function testCannotSignalMissedPaymentIfNotPropertyOwner(address user) external {
         // Arrange
@@ -766,7 +795,7 @@ contract CoreFacetTest is BaseTest {
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
-            tenant: user,
+            tenant: mockAddress,
             availableDeposits: Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS,
             paymentDate: block.timestamp,
             status: DataTypes.RentalStatus.Approved,
@@ -809,6 +838,38 @@ contract CoreFacetTest is BaseTest {
         // Assert
         DataTypes.Rental memory rental = coreContract.getRentalById(id);
         assertEq(rental.availableDeposits, expectedNumberOfDeposits);
+    }
+
+    function testSignalMissedPaymentUpdatesTheTenantPaymentPerfomanceScore(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessSignalMissedPaymentTests(user, id);
+
+        uint256 baseVoteCount = 3;
+        uint256 baseTotalScore = 11;
+        _createUserPaymentPerfomanceScore(address(coreContract), mockAddress, baseTotalScore, baseVoteCount);
+
+        // Act
+        coreContract.signalMissedPayment(id);
+
+        // Assert
+        ScoreCounters.ScoreCounter memory userScore =
+            _readUserPaymentPerfomanceScore(address(coreContract), mockAddress);
+
+        assertEq(userScore._totalScore, baseTotalScore + Constants.MIN_SCORE);
+        assertEq(userScore._voteCount, baseVoteCount + 1);
+    }
+
+    function testSignalMissedPaymentEmitsUserPaymentPerformanceScored(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessSignalMissedPaymentTests(user, id);
+
+        // Assert
+        vm.expectEmit(true, true, false, true);
+
+        emit Events.UserPaymentPerformanceScored(mockAddress, Constants.MIN_SCORE);
+
+        // Act
+        coreContract.signalMissedPayment(id);
     }
 
     // reviewRental
@@ -890,6 +951,104 @@ contract CoreFacetTest is BaseTest {
 
         // Act
         coreContract.reviewRental(id, 1, 1);
+    }
+
+    function _setupSuccessReviewRentalTests(address user, uint256 id) internal {
+        vm.prank(user);
+        _setUpOwnerOfMockCall(mockAddress);
+        _setUpExistsMockCall(id, true);
+
+        DataTypes.Rental memory rentalMock = DataTypes.Rental({
+            rentPrice: Constants.MIN_RENT_PRICE,
+            tenant: user,
+            availableDeposits: Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS,
+            paymentDate: block.timestamp,
+            status: DataTypes.RentalStatus.Approved,
+            createdAt: block.timestamp
+        });
+
+        _createRental(address(coreContract), id, rentalMock);
+
+        vm.warp(Constants.CONTRACT_DURATION + 1 days);
+    }
+
+    function testReviewRental(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessReviewRentalTests(user, id);
+
+        // Act
+        coreContract.reviewRental(id, 1, 1);
+
+        // Assert
+        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+
+        assertEq(uint8(rental.status), uint8(DataTypes.RentalStatus.Completed));
+    }
+
+    function testReviewRentalUpdatesTheOwnerScore(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessReviewRentalTests(user, id);
+
+        uint256 baseVoteCount = 3;
+        uint256 baseTotalScore = 11;
+        _createUserScore(address(coreContract), mockAddress, baseTotalScore, baseVoteCount);
+
+        uint256 userVote = 3;
+
+        // Act
+        coreContract.reviewRental(id, 1, userVote);
+
+        // Assert
+        ScoreCounters.ScoreCounter memory userScore = _readUserScore(address(coreContract), mockAddress);
+
+        assertEq(userScore._totalScore, baseTotalScore + userVote);
+        assertEq(userScore._voteCount, baseVoteCount + 1);
+    }
+
+    function testReviewRentalEmitsUserScored(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessReviewRentalTests(user, id);
+
+        uint256 expectedUserVote = 3;
+
+        // Assert
+        vm.expectEmit(true, true, false, true);
+
+        emit Events.UserScored(mockAddress, expectedUserVote);
+
+        // Act
+        coreContract.reviewRental(id, 1, expectedUserVote);
+    }
+
+    function testReviewRentalUpdatesThePropertyScore(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessReviewRentalTests(user, id);
+
+        uint256 propertyVote = 3;
+
+        // Act
+        coreContract.reviewRental(id, propertyVote, 1);
+
+        // Assert
+        ScoreCounters.ScoreCounter memory userScore = _readPropertyScore(address(coreContract), id);
+
+        assertEq(userScore._totalScore, propertyVote);
+        assertEq(userScore._voteCount, 1);
+    }
+
+    function testReviewRentalEmitsPropertyScored(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessReviewRentalTests(user, id);
+
+        uint256 expectedPropertyVote = 3;
+
+        // Assert
+        vm.expectEmit(true, true, false, true);
+
+        emit Events.PropertyScored(id, expectedPropertyVote);
+
+        // Act
+        coreContract.reviewRental(id, expectedPropertyVote, 1);
     }
 
     // completeRental()
@@ -1007,22 +1166,35 @@ contract CoreFacetTest is BaseTest {
         assertEq(balance, expectedBalance);
     }
 
-    function testCompleteRentalCleansTheRentalData(address user, uint256 id) external {
+    function testCompleteRentalUpdatesTheTentantScore(address user, uint256 id) external {
         // Arrange
         _setupSuccessCompleteRentalTests(user, id);
 
+        uint256 expectedUserVote = 1;
+
         // Act
-        coreContract.completeRental(id, 1);
+        coreContract.completeRental(id, expectedUserVote);
 
         // Assert
-        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+        ScoreCounters.ScoreCounter memory userScore = _readUserScore(address(coreContract), mockAddress);
 
-        assertEq(rental.rentPrice, 0);
-        assertEq(rental.tenant, address(0));
-        assertEq(rental.availableDeposits, 0);
-        assertEq(rental.paymentDate, 0);
-        assertEq(uint8(rental.status), uint8(0));
-        assertEq(rental.createdAt, 0);
+        assertEq(userScore._totalScore, expectedUserVote);
+        assertEq(userScore._voteCount, 1);
+    }
+
+    function testCompleteRentalEmitsUserScored(address user, uint256 id) external {
+        // Arrange
+        _setupSuccessCompleteRentalTests(user, id);
+
+        uint256 expectedUserVote = 3;
+
+        // Assert
+        vm.expectEmit(true, true, false, true);
+
+        emit Events.UserScored(mockAddress, expectedUserVote);
+
+        // Act
+        coreContract.completeRental(id, expectedUserVote);
     }
 
     // withdraw()
