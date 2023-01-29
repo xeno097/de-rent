@@ -9,6 +9,7 @@ import "@contracts/libraries/ScoreCounters.sol";
 
 abstract contract BaseTest is Test {
     address constant mockAddress = address(97);
+    address constant alternativeMockAddress = address(53);
     string constant ozOwnableContractError = "Ownable: caller is not the owner";
 
     // Mocks
@@ -22,6 +23,22 @@ abstract contract BaseTest is Test {
 
     function _setUpOwnerOfMockCall(address returnData) internal {
         vm.mockCall(mockAddress, abi.encodeWithSelector(IERC721.ownerOf.selector), abi.encode(returnData));
+    }
+
+    function _setUpTokenUriMockCall(uint256 property, string memory returnValue) internal {
+        vm.mockCall(
+            mockAddress, abi.encodeWithSelector(IERC721Metadata.tokenURI.selector, property), abi.encode(returnValue)
+        );
+    }
+
+    function _setUpOwnerOfMockCall(uint256 property, address returnData) internal {
+        vm.mockCall(mockAddress, abi.encodeWithSelector(IERC721.ownerOf.selector, property), abi.encode(returnData));
+    }
+
+    function _setUpGetTotalPropertyCountMockCall(uint256 returnValue) internal {
+        vm.mockCall(
+            mockAddress, abi.encodeWithSelector(IProperty.getTotalPropertyCount.selector), abi.encode(returnValue)
+        );
     }
 
     // Storage
