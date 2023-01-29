@@ -705,19 +705,19 @@ contract CoreFacetTest is BaseTest {
         assertEq(rental.paymentDate, currentPayDate + Constants.MONTH);
     }
 
-    function testPayRentUpdatesTheTenantPaymentPerfomanceScore(address user, uint256 id) external {
+    function testPayRentUpdatesTheTenantPaymentPerformanceScore(address user, uint256 id) external {
         // Arrange
         _setupSuccessPayRentTests(user, id);
 
         uint256 baseVoteCount = 3;
         uint256 baseTotalScore = 11;
-        _createUserPaymentPerfomanceScore(address(coreContract), user, baseTotalScore, baseVoteCount);
+        _createUserPaymentPerformanceScore(address(coreContract), user, baseTotalScore, baseVoteCount);
 
         // Act
         coreContract.payRent{value: Constants.MIN_RENT_PRICE}(id);
 
         // Assert
-        ScoreCounters.ScoreCounter memory userScore = _readUserPaymentPerfomanceScore(address(coreContract), user);
+        ScoreCounters.ScoreCounter memory userScore = _readUserPaymentPerformanceScore(address(coreContract), user);
 
         assertEq(userScore._totalScore, baseTotalScore + Constants.MAX_SCORE);
         assertEq(userScore._voteCount, baseVoteCount + 1);
@@ -840,20 +840,20 @@ contract CoreFacetTest is BaseTest {
         assertEq(rental.availableDeposits, expectedNumberOfDeposits);
     }
 
-    function testSignalMissedPaymentUpdatesTheTenantPaymentPerfomanceScore(address user, uint256 id) external {
+    function testSignalMissedPaymentUpdatesTheTenantPaymentPerformanceScore(address user, uint256 id) external {
         // Arrange
         _setupSuccessSignalMissedPaymentTests(user, id);
 
         uint256 baseVoteCount = 3;
         uint256 baseTotalScore = 11;
-        _createUserPaymentPerfomanceScore(address(coreContract), mockAddress, baseTotalScore, baseVoteCount);
+        _createUserPaymentPerformanceScore(address(coreContract), mockAddress, baseTotalScore, baseVoteCount);
 
         // Act
         coreContract.signalMissedPayment(id);
 
         // Assert
         ScoreCounters.ScoreCounter memory userScore =
-            _readUserPaymentPerfomanceScore(address(coreContract), mockAddress);
+            _readUserPaymentPerformanceScore(address(coreContract), mockAddress);
 
         assertEq(userScore._totalScore, baseTotalScore + Constants.MIN_SCORE);
         assertEq(userScore._voteCount, baseVoteCount + 1);
