@@ -18,15 +18,12 @@ contract ReputationTest is BaseTest {
         ReputationFacet reputationContractInstance = new ReputationFacet();
         DiamondInit initer = new DiamondInit();
 
-        bytes4[] memory selectors = new bytes4[](7);
+        bytes4[] memory selectors = new bytes4[](4);
 
-        selectors[0] = (IReputation.decimals.selector);
-        selectors[1] = (IReputation.getUserScore.selector);
-        selectors[2] = (IReputation.getPropertyScore.selector);
-        selectors[3] = (IReputation.getUserPaymentPerformanceScore.selector);
-        selectors[4] = (IReputation.scoreProperty.selector);
-        selectors[5] = (IReputation.scoreUser.selector);
-        selectors[6] = (IReputation.scoreUserPaymentPerformance.selector);
+        selectors[0] = (IReputationReader.decimals.selector);
+        selectors[1] = (IReputationReader.getUserScore.selector);
+        selectors[2] = (IReputationReader.getPropertyScore.selector);
+        selectors[3] = (IReputationReader.getUserPaymentPerformanceScore.selector);
 
         IDiamond.FacetCut[] memory diamondCut = new IDiamond.FacetCut[](1);
 
