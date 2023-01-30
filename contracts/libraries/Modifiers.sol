@@ -13,6 +13,14 @@ contract Modifiers {
         _;
     }
 
+    // Properties
+    modifier propertyExist(uint256 property) {
+        if (!s.propertyInstance.exists(property)) {
+            revert Errors.PropertyNotFound();
+        }
+        _;
+    }
+
     modifier onlyPropertyOwner(uint256 property) {
         if (s.propertyInstance.ownerOf(property) != msg.sender) {
             revert Errors.NotPropertyOwner();
@@ -20,6 +28,7 @@ contract Modifiers {
         _;
     }
 
+    // Rentals
     modifier onlyPropertyTenant(uint256 property) {
         if (s.rentals[property].tenant != msg.sender) {
             revert Errors.NotPropertyTenant();
@@ -30,13 +39,6 @@ contract Modifiers {
     modifier onlyPendingRentalRequest(uint256 request) {
         if (s.rentals[request].status != DataTypes.RentalStatus.Pending) {
             revert Errors.CannotApproveNotPendingRentalRequest();
-        }
-        _;
-    }
-
-    modifier propertyExist(uint256 property) {
-        if (!s.propertyInstance.exists(property)) {
-            revert Errors.PropertyNotFound();
         }
         _;
     }
