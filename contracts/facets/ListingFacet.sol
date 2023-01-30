@@ -89,7 +89,12 @@ contract ListingFacet is Modifiers, IListingFacet {
     /**
      * @dev see {IListing-getPropertyById}.
      */
-    function getPropertyById(uint256 property) external view propertyExist(property) returns (DataTypes.ListingProperty memory) {
+    function getPropertyById(uint256 property)
+        external
+        view
+        propertyExist(property)
+        returns (DataTypes.ListingProperty memory)
+    {
         return _getListingPropertyById(property);
     }
 }
