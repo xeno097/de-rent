@@ -113,7 +113,7 @@ abstract contract BaseTest is Test {
         _storeScore(target, sslot, totalCount, voteCount);
     }
 
-    function _readPropertyScore(address target, uint256 property)
+    function _readRentalScore(address target, uint256 property)
         internal
         view
         returns (ScoreCounters.ScoreCounter memory)
@@ -131,8 +131,12 @@ abstract contract BaseTest is Test {
         _writeToStorage(target, sslot, bytes32(voteCount), 1);
     }
 
+    function _getPropertyStorageSlot(uint256 id) internal pure returns (bytes32) {
+        return keccak256(abi.encode(id, uint256(0)));
+    }
+
     function _createProperty(address target, uint256 id, DataTypes.Property memory property) internal {
-        bytes32 sslot = keccak256(abi.encode(id, uint256(0)));
+        bytes32 sslot = _getPropertyStorageSlot(id);
 
         _storeProperty(target, sslot, property);
     }
@@ -142,8 +146,21 @@ abstract contract BaseTest is Test {
         _writeToStorage(target, sslot, bytes32(uint256(property.published ? 1 : 0)), 1);
     }
 
+    function _readProperty(address target, uint256 property) internal view returns (DataTypes.Property memory) {
+        bytes32 sslot = _getPropertyStorageSlot(property);
+
+        return DataTypes.Property({
+            rentPrice: uint256(_readFromStorage(target, sslot)),
+            published: uint256(_readFromStorage(target, sslot, 1)) == 1
+        });
+    }
+
+    function _getRentalStorageSlot(uint256 id) internal pure returns (bytes32) {
+        return keccak256(abi.encode(id, uint256(1)));
+    }
+
     function _createRental(address target, uint256 id, DataTypes.Rental memory rental) internal {
-        bytes32 sslot = keccak256(abi.encode(id, uint256(1)));
+        bytes32 sslot = _getRentalStorageSlot(id);
 
         _storeRental(target, sslot, rental);
     }
@@ -155,6 +172,19 @@ abstract contract BaseTest is Test {
         _writeToStorage(target, sslot, bytes32(rental.paymentDate), 3);
         _writeToStorage(target, sslot, bytes32(uint256(rental.status)), 4);
         _writeToStorage(target, sslot, bytes32(rental.createdAt), 5);
+    }
+
+    function _readRental(address target, uint256 property) internal view returns (DataTypes.Rental memory) {
+        bytes32 sslot = _getRentalStorageSlot(property);
+
+        return DataTypes.Rental({
+            rentPrice: uint256(_readFromStorage(target, sslot)),
+            tenant: address(uint160(uint256(_readFromStorage(target, sslot, 1)))),
+            availableDeposits: uint256(_readFromStorage(target, sslot, 2)),
+            paymentDate: uint256(_readFromStorage(target, sslot, 3)),
+            status: DataTypes.RentalStatus(uint8(uint256(_readFromStorage(target, sslot, 4)))),
+            createdAt: uint256(_readFromStorage(target, sslot, 5))
+        });
     }
 
     function _getUserBalanceStorageSlot(address user) internal pure returns (bytes32) {

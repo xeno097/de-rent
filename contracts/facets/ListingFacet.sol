@@ -22,7 +22,7 @@ contract ListingFacet is Modifiers, IListingFacet {
         });
     }
 
-    function _getPropertiesByFilter(function(DataTypes.ListingProperty memory) view returns(bool) filterFunc)
+    function _filterPropertiesBy(function(DataTypes.ListingProperty memory) view returns(bool) filterFunc)
         internal
         view
         returns (DataTypes.ListingProperty[] memory)
@@ -61,14 +61,14 @@ contract ListingFacet is Modifiers, IListingFacet {
      * @dev see {IListingFacet-getSelfProperties}.
      */
     function getSelfProperties() external view returns (DataTypes.ListingProperty[] memory) {
-        return _getPropertiesByFilter(_filterByOwner);
+        return _filterPropertiesBy(_filterByOwner);
     }
 
     /**
      * @dev see {IListingFacet-getPublishedProperties}.
      */
     function getPublishedProperties() external view returns (DataTypes.ListingProperty[] memory) {
-        return _getPropertiesByFilter(_filterByPublished);
+        return _filterPropertiesBy(_filterByPublished);
     }
 
     /**
@@ -89,7 +89,12 @@ contract ListingFacet is Modifiers, IListingFacet {
     /**
      * @dev see {IListing-getPropertyById}.
      */
-    function getPropertyById(uint256 property) external view returns (DataTypes.ListingProperty memory) {
+    function getPropertyById(uint256 property)
+        external
+        view
+        propertyExist(property)
+        returns (DataTypes.ListingProperty memory)
+    {
         return _getListingPropertyById(property);
     }
 }
