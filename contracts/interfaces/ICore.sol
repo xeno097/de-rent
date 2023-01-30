@@ -10,16 +10,6 @@ interface ICoreFacet {
     function balanceOf(address user) external view returns (uint256);
 
     /**
-     * @dev Returns `property` data if `property` exists.
-     */
-    function getPropertyById(uint256 property) external view returns (DataTypes.Property memory);
-
-    /**
-     * @dev Returns `rental` data if `property` exists.
-     */
-    function getRentalById(uint256 id) external view returns (DataTypes.Rental memory);
-
-    /**
      * @dev Allows sender to approve `request` if exists and he/she is the property owner and `request` is pending.
      *
      * Requirements:

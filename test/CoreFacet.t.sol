@@ -22,22 +22,20 @@ contract CoreFacetTest is BaseTest {
         CoreFacet coreContractInstance = new CoreFacet();
         DiamondInit initer = new DiamondInit();
 
-        bytes4[] memory selectors = new bytes4[](14);
+        bytes4[] memory selectors = new bytes4[](12);
 
-        selectors[0] = (ICoreFacet.getPropertyById.selector);
-        selectors[1] = (ICoreFacet.getRentalById.selector);
-        selectors[2] = (ICoreFacet.approveRentalRequest.selector);
-        selectors[3] = (ICoreFacet.rejectRentalRequest.selector);
-        selectors[4] = (ICoreFacet.requestRental.selector);
-        selectors[5] = (ICoreFacet.setPropertyVisibility.selector);
-        selectors[6] = (ICoreFacet.createProperty.selector);
-        selectors[7] = (ICoreFacet.updateProperty.selector);
-        selectors[8] = (ICoreFacet.payRent.selector);
-        selectors[9] = (ICoreFacet.signalMissedPayment.selector);
-        selectors[10] = (ICoreFacet.reviewRental.selector);
-        selectors[11] = (ICoreFacet.completeRental.selector);
-        selectors[12] = (ICoreFacet.withdraw.selector);
-        selectors[13] = (ICoreFacet.balanceOf.selector);
+        selectors[0] = ICoreFacet.approveRentalRequest.selector;
+        selectors[1] = ICoreFacet.rejectRentalRequest.selector;
+        selectors[2] = ICoreFacet.requestRental.selector;
+        selectors[3] = ICoreFacet.setPropertyVisibility.selector;
+        selectors[4] = ICoreFacet.createProperty.selector;
+        selectors[5] = ICoreFacet.updateProperty.selector;
+        selectors[6] = ICoreFacet.payRent.selector;
+        selectors[7] = ICoreFacet.signalMissedPayment.selector;
+        selectors[8] = ICoreFacet.reviewRental.selector;
+        selectors[9] = ICoreFacet.completeRental.selector;
+        selectors[10] = ICoreFacet.withdraw.selector;
+        selectors[11] = ICoreFacet.balanceOf.selector;
 
         IDiamond.FacetCut[] memory diamondCut = new IDiamond.FacetCut[](1);
 
@@ -55,69 +53,6 @@ contract CoreFacetTest is BaseTest {
 
         Diamond diamondProxy = new Diamond(diamondCut, args);
         coreContract = CoreFacet(address(diamondProxy));
-    }
-
-    // getPropertyById()
-    function testCannotGetPropertyByIdIfDoesNotExist(uint256 id) external {
-        // Arrange
-        _setUpExistsMockCall(id, false);
-
-        // Assert
-        vm.expectRevert(Errors.PropertyNotFound.selector);
-
-        // Act
-        coreContract.getPropertyById(id);
-    }
-
-    function testGetPropertyById(uint256 id) external {
-        // Arrange
-        _setUpExistsMockCall(id, true);
-
-        DataTypes.Property memory mockProperty =
-            DataTypes.Property({rentPrice: Constants.MIN_RENT_PRICE, published: true});
-
-        _createProperty(address(coreContract), id, mockProperty);
-
-        // Act
-        DataTypes.Property memory property = coreContract.getPropertyById(id);
-
-        // Assert
-        assertEq(property.rentPrice, Constants.MIN_RENT_PRICE);
-        assertEq(property.published, true);
-    }
-
-    // getRentalById()
-    function testCannotGetRentalByIdIfPropertyDoesNotExist(uint256 id) external {
-        // Arrange
-        _setUpExistsMockCall(id, false);
-
-        // Assert
-        vm.expectRevert(Errors.PropertyNotFound.selector);
-
-        // Act
-        coreContract.getPropertyById(id);
-    }
-
-    function testGetRentalById(uint256 id) external {
-        // Arrange
-        _setUpExistsMockCall(id, true);
-
-        DataTypes.Rental memory rentalMock = DataTypes.Rental({
-            rentPrice: Constants.MIN_RENT_PRICE,
-            tenant: mockAddress,
-            availableDeposits: Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS,
-            paymentDate: block.timestamp,
-            status: DataTypes.RentalStatus.Free,
-            createdAt: block.timestamp
-        });
-
-        _createRental(address(coreContract), id, rentalMock);
-
-        // Act
-        DataTypes.Rental memory rental = coreContract.getRentalById(id);
-
-        // Assert
-        assertEq(rental.rentPrice, Constants.MIN_RENT_PRICE);
     }
 
     // createProperty()
@@ -143,7 +78,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.createProperty("", expectedRentPrice);
 
         // Assert
-        DataTypes.Property memory property = coreContract.getPropertyById(0);
+        DataTypes.Property memory property = _readProperty(address(coreContract), 0);
 
         assertEq(property.rentPrice, expectedRentPrice);
         assertTrue(property.published);
@@ -212,7 +147,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.setPropertyVisibility(0, expectedVisibility);
 
         // Assert
-        DataTypes.Property memory property = coreContract.getPropertyById(0);
+        DataTypes.Property memory property = _readProperty(address(coreContract), 0);
         assertEq(property.published, expectedVisibility);
     }
 
@@ -323,7 +258,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.requestRental{value: deposit}(id);
 
         // Assert
-        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+        DataTypes.Rental memory rental = _readRental(address(coreContract), id);
         assertEq(rental.tenant, user);
     }
 
@@ -406,7 +341,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.approveRentalRequest(id);
 
         // Assert
-        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+        DataTypes.Rental memory rental = _readRental(address(coreContract), id);
         assertEq(uint8(rental.status), uint8(DataTypes.RentalStatus.Approved));
         assertGe(rental.createdAt, uint256(0));
         assertEq(rental.paymentDate, rental.createdAt + Constants.MONTH);
@@ -491,7 +426,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.rejectRentalRequest(id);
 
         // Assert
-        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+        DataTypes.Rental memory rental = _readRental(address(coreContract), id);
 
         assertEq(rental.rentPrice, 0);
         assertEq(rental.tenant, address(0));
@@ -700,7 +635,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.payRent{value: Constants.MIN_RENT_PRICE}(id);
 
         // Assert
-        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+        DataTypes.Rental memory rental = _readRental(address(coreContract), id);
 
         assertEq(rental.paymentDate, currentPayDate + Constants.MONTH);
     }
@@ -836,7 +771,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.signalMissedPayment(id);
 
         // Assert
-        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+        DataTypes.Rental memory rental = _readRental(address(coreContract), id);
         assertEq(rental.availableDeposits, expectedNumberOfDeposits);
     }
 
@@ -980,7 +915,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.reviewRental(id, 1, 1);
 
         // Assert
-        DataTypes.Rental memory rental = coreContract.getRentalById(id);
+        DataTypes.Rental memory rental = _readRental(address(coreContract), id);
 
         assertEq(uint8(rental.status), uint8(DataTypes.RentalStatus.Completed));
     }
@@ -1030,7 +965,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.reviewRental(id, propertyVote, 1);
 
         // Assert
-        ScoreCounters.ScoreCounter memory userScore = _readPropertyScore(address(coreContract), id);
+        ScoreCounters.ScoreCounter memory userScore = _readRentalScore(address(coreContract), id);
 
         assertEq(userScore._totalScore, propertyVote);
         assertEq(userScore._voteCount, 1);

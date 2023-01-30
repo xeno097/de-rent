@@ -22,20 +22,6 @@ contract CoreFacet is Modifiers, ICoreFacet {
     }
 
     /**
-     * @dev see {ICoreFacet-getPropertyById}.
-     */
-    function getPropertyById(uint256 id) external view propertyExist(id) returns (DataTypes.Property memory) {
-        return s.properties[id];
-    }
-
-    /**
-     * @dev see {ICoreFacet-getRentalById}.
-     */
-    function getRentalById(uint256 id) external view propertyExist(id) returns (DataTypes.Rental memory) {
-        return s.rentals[id];
-    }
-
-    /**
      * @dev see {ICoreFacet-requestRental}.
      */
     function requestRental(uint256 propertyId) external payable {
