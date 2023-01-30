@@ -44,6 +44,7 @@ contract ListingTest is BaseTest {
     }
 
     function _setupListingPropertyTests(uint256 id, address owner, bool published) internal {
+        _setUpExistsMockCall(id, true);
         _setUpOwnerOfMockCall(id, owner);
 
         string memory expectedUri = "some random uri";
@@ -65,6 +66,17 @@ contract ListingTest is BaseTest {
     }
 
     // function getPropertyById()
+    function testCannotGetPropertyByIdIfDoesNotExist(uint256 id) external {
+        // Arrange
+        _setUpExistsMockCall(id, false);
+
+        // Assert
+        vm.expectRevert(Errors.PropertyNotFound.selector);
+
+        // Act
+        listingContract.getPropertyById(id);
+    }
+
     function testGetPropertyById(uint256 id) external {
         // Arrange
         _setupListingPropertyTests(id, mockAddress, false);
