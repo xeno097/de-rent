@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "forge-std/Test.sol";
-import "@contracts/facets/ReputationFacet.sol";
 import "./utils/BaseTest.sol";
-import "@contracts/libraries/Errors.sol";
-import "@contracts/interfaces/IProperty.sol";
+
 import {IDiamond} from "@diamonds/interfaces/IDiamond.sol";
 import {Diamond, DiamondArgs} from "@diamonds/Diamond.sol";
 import {DiamondInit} from "@diamonds/upgradeInitializers/DiamondInit.sol";
 
-contract ReputationTest is BaseTest {
+import "@contracts/facets/ReputationFacet.sol";
+import "@contracts/libraries/Errors.sol";
+import "@contracts/interfaces/IProperty.sol";
+
+contract ReputationFacetTest is BaseTest {
     ReputationFacet reputationContract;
-    Diamond diamondProxy;
 
     function setUp() public {
         ReputationFacet reputationContractInstance = new ReputationFacet();
@@ -39,7 +39,7 @@ contract ReputationTest is BaseTest {
             initCalldata: abi.encodeWithSelector(DiamondInit.init.selector, address(mockAddress))
         });
 
-        diamondProxy = new Diamond(diamondCut, args);
+        Diamond diamondProxy = new Diamond(diamondCut, args);
         reputationContract = ReputationFacet(address(diamondProxy));
     }
 
@@ -70,7 +70,7 @@ contract ReputationTest is BaseTest {
     function testGetUserScoreReturnsTheMaximumScoreIfUserHas0RegisteredScores(address user) external {
         // Arrange
         vm.assume(user != address(0));
-        uint256 expectedResult = Constants.MAX_SCORE * (10 ** Constants.DECIMALS);
+        uint256 expectedResult = Constants.MAX_SCORE * Constants.SCORE_MULTIPLIER;
 
         // Act
         uint256 res = reputationContract.getUserScore(user);
@@ -84,7 +84,7 @@ contract ReputationTest is BaseTest {
         vm.assume(user != address(0));
 
         uint256[3] memory scores = [uint256(4), uint256(3), uint256(5)];
-        uint256 expectedResult = ((scores[0] + scores[1] + scores[2]) * (10 ** Constants.DECIMALS)) / scores.length;
+        uint256 expectedResult = ((scores[0] + scores[1] + scores[2]) * Constants.SCORE_MULTIPLIER) / scores.length;
 
         _createUserScore(address(reputationContract), user, scores[0] + scores[1] + scores[2], 3);
 
@@ -111,7 +111,7 @@ contract ReputationTest is BaseTest {
     function testGetPropertyScoreReturnsTheMaximumScoreIfPropertyHas0RegisteredScores(uint256 property) external {
         // Arrange
         _setUpExistsMockCall(property, true);
-        uint256 expectedResult = Constants.MAX_SCORE * (10 ** Constants.DECIMALS);
+        uint256 expectedResult = Constants.MAX_SCORE * Constants.SCORE_MULTIPLIER;
 
         // Act
         uint256 res = reputationContract.getPropertyScore(property);
@@ -124,7 +124,7 @@ contract ReputationTest is BaseTest {
         // Arrange
         _setUpExistsMockCall(property, true);
         uint256[3] memory scores = [uint256(4), uint256(3), uint256(5)];
-        uint256 expectedResult = ((scores[0] + scores[1] + scores[2]) * (10 ** Constants.DECIMALS)) / scores.length;
+        uint256 expectedResult = ((scores[0] + scores[1] + scores[2]) * Constants.SCORE_MULTIPLIER) / scores.length;
 
         _createPropertyScore(address(reputationContract), property, scores[0] + scores[1] + scores[2], 3);
 
@@ -152,7 +152,7 @@ contract ReputationTest is BaseTest {
     {
         // Arrange
         vm.assume(user != address(0));
-        uint256 expectedResult = Constants.MAX_SCORE * (10 ** Constants.DECIMALS);
+        uint256 expectedResult = Constants.MAX_SCORE * Constants.SCORE_MULTIPLIER;
 
         // Act
         uint256 res = reputationContract.getUserPaymentPerformanceScore(user);
@@ -167,7 +167,7 @@ contract ReputationTest is BaseTest {
 
         bool[3] memory scores = [true, false, true];
         uint256 expectedResult = (
-            (Constants.MAX_SCORE + Constants.MIN_SCORE + Constants.MAX_SCORE) * (10 ** Constants.DECIMALS)
+            (Constants.MAX_SCORE + Constants.MIN_SCORE + Constants.MAX_SCORE) * Constants.SCORE_MULTIPLIER
         ) / scores.length;
 
         _createUserPaymentPerformanceScore(

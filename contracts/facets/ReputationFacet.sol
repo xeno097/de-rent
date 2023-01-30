@@ -9,25 +9,10 @@ import "@contracts/libraries/Errors.sol";
 import "@contracts/libraries/Constants.sol";
 import "@contracts/libraries/ScoreCounters.sol";
 import "@contracts/libraries/AppStorage.sol";
+import "@contracts/libraries/Modifiers.sol";
 
-contract ReputationFacet is IReputationReader {
+contract ReputationFacet is Modifiers, IReputationReader {
     using ScoreCounters for ScoreCounters.ScoreCounter;
-
-    AppStorage internal s;
-
-    modifier propertyExist(uint256 property) {
-        if (!s.propertyInstance.exists(property)) {
-            revert Errors.PropertyNotFound();
-        }
-        _;
-    }
-
-    modifier not0Address(address user) {
-        if (user == address(0)) {
-            revert Errors.InvalidAddress(user);
-        }
-        _;
-    }
 
     /**
      * @dev see {IReputationReader-decimals}.
