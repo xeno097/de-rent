@@ -14,6 +14,12 @@ struct AppStorage {
     mapping(address => ScoreCounters.ScoreCounter) userScores;
     mapping(address => ScoreCounters.ScoreCounter) userPaymentPerformanceScores;
     mapping(uint256 => ScoreCounters.ScoreCounter) propertyScores;
+    // ERC1155
+    mapping(uint256 => mapping(address => uint256)) tokenBalances;
+    mapping(address => mapping(address => bool)) approvals;
+    // ERC1155URIStorage
+    string baseUri;
+    mapping(uint256 => string) tokenUris;
     // TODO: remove this after complete porting
     IProperty propertyInstance;
 }
