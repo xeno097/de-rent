@@ -31,20 +31,6 @@ contract Modifiers {
         _;
     }
 
-    modifier propertyExist(uint256 property) {
-        if (!s.propertyInstance.exists(property)) {
-            revert Errors.PropertyNotFound();
-        }
-        _;
-    }
-
-    modifier onlyPropertyOwner(uint256 property) {
-        if (s.propertyInstance.ownerOf(property) != msg.sender) {
-            revert Errors.NotPropertyOwner();
-        }
-        _;
-    }
-
     // Rentals
     modifier onlyPropertyTenant(uint256 property) {
         if (s.rentals[property].tenant != msg.sender) {
