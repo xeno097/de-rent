@@ -6,9 +6,11 @@ import "@contracts/libraries/DataTypes.sol";
 import "@contracts/libraries/Modifiers.sol";
 
 contract ListingFacet is Modifiers, IListingFacet {
+    using ERC1155NftCounter for ERC1155NftCounter.Counter;
+
     function _getListingPropertyById(uint256 id) internal view returns (DataTypes.ListingProperty memory) {
-        string memory uri = s.propertyInstance.tokenURI(id);
-        address owner = s.propertyInstance.ownerOf(id);
+        string memory uri = s.tokenUris[id];
+        address owner = s.owners[id];
         DataTypes.Property memory property = s.properties[id];
         DataTypes.Rental memory rental = s.rentals[id];
 
@@ -75,7 +77,7 @@ contract ListingFacet is Modifiers, IListingFacet {
      * @dev see {IListingFacet-getProperties}.
      */
     function getProperties() public view returns (DataTypes.ListingProperty[] memory) {
-        uint256 totalCount = s.propertyInstance.getTotalPropertyCount();
+        uint256 totalCount = s.tokenCounter.current();
 
         DataTypes.ListingProperty[] memory res = new  DataTypes.ListingProperty[](totalCount);
 
@@ -92,7 +94,7 @@ contract ListingFacet is Modifiers, IListingFacet {
     function getPropertyById(uint256 property)
         external
         view
-        propertyExist(property)
+        requirePropertyExists(property)
         returns (DataTypes.ListingProperty memory)
     {
         return _getListingPropertyById(property);

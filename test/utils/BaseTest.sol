@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "forge-std/Test.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
 import "@contracts/interfaces/IProperty.sol";
 import "@contracts/libraries/DataTypes.sol";
@@ -41,6 +42,14 @@ abstract contract BaseTest is Test {
         );
     }
 
+    function _setUpOnERC1155ReceivedMockCall(address target) internal {
+        vm.mockCall(
+            target,
+            abi.encodeWithSelector(IERC1155Receiver.onERC1155Received.selector),
+            abi.encode(bytes32(bytes4(0xf23a6e61)))
+        );
+    }
+
     // Storage
     function _writeToStorage(address target, bytes32 sslot, bytes32 value, uint256 offset) internal {
         bytes32 storageSlot = bytes32(uint256(sslot) + offset);
@@ -57,6 +66,30 @@ abstract contract BaseTest is Test {
 
     function _readFromStorage(address target, bytes32 sslot) internal view returns (bytes32) {
         return _readFromStorage(target, sslot, 0);
+    }
+
+    function _setPropertyCount(address target, uint256 value) internal {
+        bytes32 sslot = bytes32(uint256(10));
+
+        _writeToStorage(target, sslot, bytes32(value));
+    }
+
+    function _createTokenBalance(address target, uint256 tokenId, address owner, uint256 balance) internal {
+        bytes32 sslot = keccak256(abi.encode(uint256(uint160(owner)), keccak256(abi.encode(tokenId, uint256(6)))));
+
+        _writeToStorage(target, sslot, bytes32(balance));
+    }
+
+    function _createTokenUri(address target, uint256 tokenId, string memory uri) internal {
+        bytes32 sslot = keccak256(abi.encode(tokenId, uint256(9)));
+
+        _writeToStorage(target, sslot, bytes32(bytes(uri)));
+    }
+
+    function _setTokenOwner(address target, uint256 tokenId, address owner) internal {
+        bytes32 sslot = keccak256(abi.encode(tokenId, uint256(11)));
+
+        _writeToStorage(target, sslot, bytes32(uint256(uint160(owner))));
     }
 
     function _getUserScoreStorageSlot(address user) internal pure returns (bytes32) {

@@ -36,4 +36,7 @@ library Constants {
     uint256 public constant MAX_SCORE = 5;
 
     uint256 public constant MIN_SCORE = 1;
+
+    // 97036656340996270057872488819247545011993502283689007230542744013033707367097
+    uint256 constant DE_RENT_USER_BALANCES_TOKEN_ID = uint256(keccak256("de.rent.user.balances.token.id"));
 }

@@ -40,25 +40,6 @@ interface ICoreFacet {
     function requestRental(uint256 property) external payable;
 
     /**
-     * @dev Allows sender to update the `property` visibility if he/she is `property` owner.
-     *
-     * Requirements:
-     * - `property`  must exist.
-     *
-     */
-    function setPropertyVisibility(uint256 property, bool visibility) external;
-
-    /**
-     * @dev Allows sender to mint a new property with the given metadata uri.
-     */
-    function createProperty(string memory uri, uint256 rentPrice) external;
-
-    /**
-     * @dev Allows sender to update `property` uri metadata if he/she is the owner and `property` exists.
-     */
-    function updateProperty(uint256 property, string memory newUri) external;
-
-    /**
      * @dev Allows sender to pay the rent for `rental`.
      */
     function payRent(uint256 rental) external payable;

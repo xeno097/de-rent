@@ -43,12 +43,14 @@ contract ListingTest is BaseTest {
         listingContract = ListingFacet(address(diamondProxy));
     }
 
-    function _setupListingPropertyTests(uint256 id, address owner, bool published) internal {
-        _setUpExistsMockCall(id, true);
-        _setUpOwnerOfMockCall(id, owner);
+    function _setupListingPropertyTests(uint128 id, address owner, bool published) internal {
+        vm.assume(id < type(uint128).max);
+
+        _setTokenOwner(address(listingContract), id, owner);
+        _setPropertyCount(address(listingContract), id + 1);
 
         string memory expectedUri = "some random uri";
-        _setUpTokenUriMockCall(id, expectedUri);
+        _createTokenUri(address(listingContract), id, expectedUri);
 
         DataTypes.Property memory propertyMock =
             DataTypes.Property({rentPrice: Constants.MIN_RENT_PRICE, published: published});
@@ -66,10 +68,7 @@ contract ListingTest is BaseTest {
     }
 
     // function getPropertyById()
-    function testCannotGetPropertyByIdIfDoesNotExist(uint256 id) external {
-        // Arrange
-        _setUpExistsMockCall(id, false);
-
+    function testCannotGetPropertyByIdIfDoesNotExist(uint128 id) external {
         // Assert
         vm.expectRevert(Errors.PropertyNotFound.selector);
 
@@ -77,7 +76,7 @@ contract ListingTest is BaseTest {
         listingContract.getPropertyById(id);
     }
 
-    function testGetPropertyById(uint256 id) external {
+    function testGetPropertyById(uint128 id) external {
         // Arrange
         _setupListingPropertyTests(id, mockAddress, false);
 
@@ -98,7 +97,7 @@ contract ListingTest is BaseTest {
         uint256 expectedLen = data.length;
         _setUpGetTotalPropertyCountMockCall(expectedLen);
 
-        for (uint256 id = 0; id < expectedLen; id++) {
+        for (uint128 id = 0; id < expectedLen; id++) {
             _setupListingPropertyTests(id, data[id], id % 2 == 0);
         }
 
@@ -121,7 +120,7 @@ contract ListingTest is BaseTest {
         // Arrange
         _setUpGetTotalPropertyCountMockCall(data.length);
 
-        for (uint256 id = 0; id < data.length; id++) {
+        for (uint128 id = 0; id < data.length; id++) {
             address owner = id % 2 == 0 ? mockAddress : data[id];
 
             _setupListingPropertyTests(id, owner, true);
@@ -143,7 +142,7 @@ contract ListingTest is BaseTest {
         // Arrange
         _setUpGetTotalPropertyCountMockCall(properties);
 
-        for (uint256 id = 0; id < properties; id++) {
+        for (uint128 id = 0; id < properties; id++) {
             _setupListingPropertyTests(id, mockAddress, id % 2 == 1);
         }
 

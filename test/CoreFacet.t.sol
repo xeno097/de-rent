@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "./utils/BaseTest.sol";
 
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import {IDiamond} from "@diamonds/interfaces/IDiamond.sol";
 import {Diamond, DiamondArgs} from "@diamonds/Diamond.sol";
 import {DiamondInit} from "@diamonds/upgradeInitializers/DiamondInit.sol";
@@ -22,20 +23,19 @@ contract CoreFacetTest is BaseTest {
         CoreFacet coreContractInstance = new CoreFacet();
         DiamondInit initer = new DiamondInit();
 
-        bytes4[] memory selectors = new bytes4[](12);
+        bytes4[] memory selectors = new bytes4[](11);
 
         selectors[0] = ICoreFacet.approveRentalRequest.selector;
         selectors[1] = ICoreFacet.rejectRentalRequest.selector;
         selectors[2] = ICoreFacet.requestRental.selector;
-        selectors[3] = ICoreFacet.setPropertyVisibility.selector;
-        selectors[4] = ICoreFacet.createProperty.selector;
-        selectors[5] = ICoreFacet.updateProperty.selector;
-        selectors[6] = ICoreFacet.payRent.selector;
-        selectors[7] = ICoreFacet.signalMissedPayment.selector;
-        selectors[8] = ICoreFacet.reviewRental.selector;
-        selectors[9] = ICoreFacet.completeRental.selector;
-        selectors[10] = ICoreFacet.withdraw.selector;
-        selectors[11] = ICoreFacet.balanceOf.selector;
+        selectors[3] = ICoreFacet.payRent.selector;
+        selectors[4] = ICoreFacet.signalMissedPayment.selector;
+        selectors[5] = ICoreFacet.reviewRental.selector;
+        selectors[6] = ICoreFacet.completeRental.selector;
+        selectors[7] = ICoreFacet.withdraw.selector;
+        selectors[8] = ICoreFacet.balanceOf.selector;
+        selectors[9] = IERC1155Receiver.onERC1155Received.selector;
+        selectors[10] = IERC1155Receiver.onERC1155BatchReceived.selector;
 
         IDiamond.FacetCut[] memory diamondCut = new IDiamond.FacetCut[](1);
 
@@ -53,134 +53,39 @@ contract CoreFacetTest is BaseTest {
 
         Diamond diamondProxy = new Diamond(diamondCut, args);
         coreContract = CoreFacet(address(diamondProxy));
-    }
 
-    // createProperty()
-    function testCannotCreatePropertyWithRentPriceLowerThanMintRentPrice(uint256 expectedRentPrice) external {
-        // Arrange
-        vm.assume(expectedRentPrice < Constants.MIN_RENT_PRICE);
-
-        // Assert
-        vm.expectRevert(Errors.IncorrectRentPrice.selector);
-
-        // Act
-        coreContract.createProperty("", expectedRentPrice);
-    }
-
-    function testCreateProperty(uint256 expectedRentPrice) external {
-        // Arrange
-        vm.assume(expectedRentPrice >= Constants.MIN_RENT_PRICE);
-        _setUpMintMockCall();
-
-        _setUpExistsMockCall(0, true);
-
-        // Act
-        coreContract.createProperty("", expectedRentPrice);
-
-        // Assert
-        DataTypes.Property memory property = _readProperty(address(coreContract), 0);
-
-        assertEq(property.rentPrice, expectedRentPrice);
-        assertTrue(property.published);
-    }
-
-    // updateProperty()
-    function testCannotUpdatePropertyIfNotThePropertyOwner(address user) external {
-        // Arrange
-        vm.assume(user != address(this) && user != mockAddress);
-
-        _setUpMintMockCall();
-        _setUpOwnerOfMockCall(mockAddress);
-
-        coreContract.createProperty("", Constants.MIN_RENT_PRICE);
-
-        vm.prank(user);
-
-        // Assert
-        vm.expectRevert(Errors.NotPropertyOwner.selector);
-
-        // Act
-        coreContract.updateProperty(0, "");
-    }
-
-    function testUpdateProperty(address user, string memory uri) external {
-        // Arrange
-        vm.assume(user != address(this));
-
-        _setUpMintMockCall();
-        _setUpOwnerOfMockCall(user);
-
-        coreContract.createProperty("", Constants.MIN_RENT_PRICE);
-
-        vm.prank(user);
-
-        // Act
-        coreContract.updateProperty(0, uri);
-    }
-
-    // setPropertyVisibility()
-    function testCannotSetPropertyVisibilityIfNotPropertyOwner(address user) external {
-        // Arrange
-        vm.assume(user != address(this));
-
-        _setUpMintMockCall();
-        _setUpOwnerOfMockCall(user);
-
-        coreContract.createProperty("", Constants.MIN_RENT_PRICE);
-
-        // Assert
-        vm.expectRevert(Errors.NotPropertyOwner.selector);
-
-        // Act
-        coreContract.setPropertyVisibility(0, true);
-    }
-
-    function testSetPropertyVisibility(bool expectedVisibility) external {
-        // Arrange
-        _setUpMintMockCall();
-        _setUpOwnerOfMockCall(address(this));
-        _setUpExistsMockCall(0, true);
-
-        coreContract.createProperty("", Constants.MIN_RENT_PRICE);
-
-        // Act
-        coreContract.setPropertyVisibility(0, expectedVisibility);
-
-        // Assert
-        DataTypes.Property memory property = _readProperty(address(coreContract), 0);
-        assertEq(property.published, expectedVisibility);
+        _setUpOnERC1155ReceivedMockCall(address(coreContractInstance));
     }
 
     // requestRental()
-    function testCannotRequestRentalForNonExistantProperty(address user) external {
+    function testCannotRequestRentalForNonExistantProperty(address user, uint128 id) external {
         // Arrange
-        _setUpOwnerOfMockCall(address(0));
         vm.prank(user);
 
         // Assert
         vm.expectRevert(Errors.CannotRentNonExistantProperty.selector);
 
         // Act
-        coreContract.requestRental(0);
+        coreContract.requestRental(id);
     }
 
-    function testCannotRequestRentalForOwnProperty(address user) external {
+    function testCannotRequestRentalForOwnProperty(address user, uint128 id) external {
         // Arrange
         vm.assume(user != address(0));
-        _setUpOwnerOfMockCall(user);
+        _setTokenOwner(address(coreContract), id, user);
         vm.prank(user);
 
         // Assert
         vm.expectRevert(Errors.CannotRentOwnProperty.selector);
 
         // Act
-        coreContract.requestRental(0);
+        coreContract.requestRental(id);
     }
 
-    function testCannotRequestRentalIfPropertyIsAlreadyRented(address user, uint256 id) external {
+    function testCannotRequestRentalIfPropertyIsAlreadyRented(address user, uint128 id) external {
         // Arrange
         vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
+        _setTokenOwner(address(coreContract), id, mockAddress);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -202,10 +107,10 @@ contract CoreFacetTest is BaseTest {
         coreContract.requestRental(id);
     }
 
-    function testCannotRequestRentalIfPropertyIsHidden(address user) external {
+    function testCannotRequestRentalIfPropertyIsHidden(address user, uint128 id) external {
         // Arrange
         vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
+        _setTokenOwner(address(coreContract), id, mockAddress);
 
         vm.prank(user);
 
@@ -213,13 +118,13 @@ contract CoreFacetTest is BaseTest {
         vm.expectRevert(Errors.CannotRentHiddenProperty.selector);
 
         // Act
-        coreContract.requestRental(0);
+        coreContract.requestRental(id);
     }
 
     function testCannotRequestRentalWithInvalidDeposit(address user, uint256 id) external {
         // Arrange
         vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
+        _setTokenOwner(address(coreContract), id, mockAddress);
 
         DataTypes.Property memory mockProperty =
             DataTypes.Property({rentPrice: Constants.MIN_RENT_PRICE, published: true});
@@ -233,11 +138,11 @@ contract CoreFacetTest is BaseTest {
         coreContract.requestRental(id);
     }
 
-    function _setupSuccessRequestRentalTests(address user, uint256 id) internal returns (uint256) {
+    function _setupSuccessRequestRentalTests(address user, uint128 id) internal returns (uint256) {
         vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
-
-        _setUpExistsMockCall(id, true);
+        vm.assume(id < type(uint128).max);
+        _setTokenOwner(address(coreContract), id, mockAddress);
+        _setPropertyCount(address(coreContract), id + 1);
 
         DataTypes.Property memory mockProperty =
             DataTypes.Property({rentPrice: Constants.MIN_RENT_PRICE, published: true});
@@ -250,7 +155,7 @@ contract CoreFacetTest is BaseTest {
         return deposit;
     }
 
-    function testRequestRental(address user, uint256 id) external {
+    function testRequestRental(address user, uint128 id) external {
         // Arrange
         uint256 deposit = _setupSuccessRequestRentalTests(user, id);
 
@@ -262,7 +167,19 @@ contract CoreFacetTest is BaseTest {
         assertEq(rental.tenant, user);
     }
 
-    function testRequestRentalEmitsRentalRequested(address user, uint256 id) external {
+    function testRequestRentalIncreasesTheERC1155TokenContractBalance(address user, uint128 id) external {
+        // Arrange
+        uint256 deposit = _setupSuccessRequestRentalTests(user, id);
+
+        // Act
+        coreContract.requestRental{value: deposit}(id);
+
+        // Assert
+        uint256 contractBalance = coreContract.balanceOf(address(coreContract));
+        assertEq(contractBalance, deposit);
+    }
+
+    function testRequestRentalEmitsRentalRequested(address user, uint128 id) external {
         // Arrange
         uint256 deposit = _setupSuccessRequestRentalTests(user, id);
 
@@ -276,10 +193,10 @@ contract CoreFacetTest is BaseTest {
     }
 
     // approveRentalRequest()
-    function testCannotApproveRentalRequestIfNotPropertyOwner(address user) external {
+    function testCannotApproveRentalRequestIfNotPropertyOwner(address user, uint128 id) external {
         // Arrange
         vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
+        _setTokenOwner(address(coreContract), id, mockAddress);
 
         vm.prank(user);
 
@@ -287,12 +204,12 @@ contract CoreFacetTest is BaseTest {
         vm.expectRevert(Errors.NotPropertyOwner.selector);
 
         // Act
-        coreContract.approveRentalRequest(0);
+        coreContract.approveRentalRequest(id);
     }
 
     function testCannotApproveRentalRequestForNotPendingRequest(address user, uint256 id) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setTokenOwner(address(coreContract), id, user);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -314,10 +231,10 @@ contract CoreFacetTest is BaseTest {
         coreContract.approveRentalRequest(id);
     }
 
-    function _setupSuccessApproveRentalRequest(address user, uint256 id) internal {
-        _setUpOwnerOfMockCall(user);
-
-        _setUpExistsMockCall(id, true);
+    function _setupSuccessApproveRentalRequest(address user, uint128 id) internal {
+        vm.assume(id < type(uint128).max);
+        _setTokenOwner(address(coreContract), id, user);
+        _setPropertyCount(address(coreContract), id + 1);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -333,7 +250,7 @@ contract CoreFacetTest is BaseTest {
         vm.prank(user);
     }
 
-    function testApproveRentalRequest(address user, uint256 id) external {
+    function testApproveRentalRequest(address user, uint128 id) external {
         // Arrange
         _setupSuccessApproveRentalRequest(user, id);
 
@@ -347,7 +264,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(rental.paymentDate, rental.createdAt + Constants.MONTH);
     }
 
-    function testApproveRentalRequestEmitsRentalRequestApproved(address user, uint256 id) external {
+    function testApproveRentalRequestEmitsRentalRequestApproved(address user, uint128 id) external {
         // Arrange
         _setupSuccessApproveRentalRequest(user, id);
 
@@ -361,10 +278,10 @@ contract CoreFacetTest is BaseTest {
     }
 
     // rejectRentalRequest()
-    function testCannotRejectRentalRequestIfNotPropertyOwner(address user) external {
+    function testCannotRejectRentalRequestIfNotPropertyOwner(address user, uint128 id) external {
         // Arrange
         vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
+        _setTokenOwner(address(coreContract), id, mockAddress);
 
         vm.prank(user);
 
@@ -372,12 +289,12 @@ contract CoreFacetTest is BaseTest {
         vm.expectRevert(Errors.NotPropertyOwner.selector);
 
         // Act
-        coreContract.rejectRentalRequest(0);
+        coreContract.rejectRentalRequest(id);
     }
 
     function testCannotRejectRentalRequestForNotPendingRequest(address user, uint256 id) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setTokenOwner(address(coreContract), id, user);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -399,10 +316,16 @@ contract CoreFacetTest is BaseTest {
         coreContract.rejectRentalRequest(id);
     }
 
-    function _setupSuccessRejectRentalRequestTests(address user, uint256 id) internal {
-        _setUpOwnerOfMockCall(user);
-
-        _setUpExistsMockCall(id, true);
+    function _setupSuccessRejectRentalRequestTests(address user, uint128 id) internal {
+        vm.assume(id < type(uint128).max);
+        _setTokenOwner(address(coreContract), id, user);
+        _setPropertyCount(address(coreContract), id + 1);
+        _createTokenBalance(
+            address(coreContract),
+            Constants.DE_RENT_USER_BALANCES_TOKEN_ID,
+            address(coreContract),
+            Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS * Constants.MIN_RENT_PRICE
+        );
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -418,7 +341,7 @@ contract CoreFacetTest is BaseTest {
         vm.prank(user);
     }
 
-    function testRejectRentalRequest(address user, uint256 id) external {
+    function testRejectRentalRequest(address user, uint128 id) external {
         // Arrange
         _setupSuccessRejectRentalRequestTests(user, id);
 
@@ -436,7 +359,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(rental.createdAt, 0);
     }
 
-    function testRejectRentalRequestIncreasesTenantBalance(address user, uint256 id) external {
+    function testRejectRentalRequestIncreasesTenantBalance(address user, uint128 id) external {
         // Arrange
         _setupSuccessRejectRentalRequestTests(user, id);
 
@@ -450,7 +373,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(balance, expectedBalance);
     }
 
-    function testRejectRentalRequestEmitsRentalRequestApproved(address user, uint256 id) external {
+    function testRejectRentalRequestEmitsRentalRequestApproved(address user, uint128 id) external {
         // Arrange
         _setupSuccessRejectRentalRequestTests(user, id);
 
@@ -594,10 +517,10 @@ contract CoreFacetTest is BaseTest {
         coreContract.payRent{value: invalidDeposit}(id);
     }
 
-    function _setupSuccessPayRentTests(address user, uint256 id) internal {
-        _setUpOwnerOfMockCall(mockAddress);
-
-        _setUpExistsMockCall(id, true);
+    function _setupSuccessPayRentTests(address user, uint128 id) internal {
+        vm.assume(id < type(uint128).max);
+        _setTokenOwner(address(coreContract), id, mockAddress);
+        _setPropertyCount(address(coreContract), id + 1);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -613,7 +536,7 @@ contract CoreFacetTest is BaseTest {
         hoax(user, Constants.MIN_RENT_PRICE);
     }
 
-    function testPayRentIncreasesTheOwnerBalance(address user, uint256 id) external {
+    function testPayRentIncreasesTheOwnerBalance(address user, uint128 id) external {
         // Arrange
         _setupSuccessPayRentTests(user, id);
 
@@ -625,7 +548,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(balance, Constants.MIN_RENT_PRICE);
     }
 
-    function testPayRentUpdatesThePayDateForTheRental(address user, uint256 id) external {
+    function testPayRentUpdatesThePayDateForTheRental(address user, uint128 id) external {
         // Arrange
         _setupSuccessPayRentTests(user, id);
 
@@ -640,7 +563,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(rental.paymentDate, currentPayDate + Constants.MONTH);
     }
 
-    function testPayRentUpdatesTheTenantPaymentPerformanceScore(address user, uint256 id) external {
+    function testPayRentUpdatesTheTenantPaymentPerformanceScore(address user, uint128 id) external {
         // Arrange
         _setupSuccessPayRentTests(user, id);
 
@@ -658,7 +581,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(userScore._voteCount, baseVoteCount + 1);
     }
 
-    function testPayRentEmitsUserPaymentPerformanceScored(address user, uint256 id) external {
+    function testPayRentEmitsUserPaymentPerformanceScored(address user, uint128 id) external {
         // Arrange
         _setupSuccessPayRentTests(user, id);
 
@@ -672,10 +595,10 @@ contract CoreFacetTest is BaseTest {
     }
 
     // signalMissedPayment()
-    function testCannotSignalMissedPaymentIfNotPropertyOwner(address user) external {
+    function testCannotSignalMissedPaymentIfNotPropertyOwner(address user, uint128 id) external {
         // Arrange
         vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
+        _setTokenOwner(address(coreContract), id, mockAddress);
 
         vm.prank(user);
 
@@ -683,12 +606,12 @@ contract CoreFacetTest is BaseTest {
         vm.expectRevert(Errors.NotPropertyOwner.selector);
 
         // Act
-        coreContract.signalMissedPayment(0);
+        coreContract.signalMissedPayment(id);
     }
 
-    function testCannotSignalMissedPaymentIfRentalIsNotApproved(address user) external {
+    function testCannotSignalMissedPaymentIfRentalIsNotApproved(address user, uint128 id) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setTokenOwner(address(coreContract), id, user);
 
         vm.prank(user);
 
@@ -696,12 +619,12 @@ contract CoreFacetTest is BaseTest {
         vm.expectRevert(Errors.RentalNotApproved.selector);
 
         // Act
-        coreContract.signalMissedPayment(0);
+        coreContract.signalMissedPayment(id);
     }
 
     function testCannotSignalMissedPaymentBeforeLatePaymentDeadline(address user, uint256 id) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setTokenOwner(address(coreContract), id, user);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -723,10 +646,19 @@ contract CoreFacetTest is BaseTest {
         coreContract.signalMissedPayment(id);
     }
 
-    function _setupSuccessSignalMissedPaymentTests(address user, uint256 id) internal {
-        _setUpOwnerOfMockCall(user);
+    function _setupSuccessSignalMissedPaymentTests(address user, uint128 id) internal {
+        vm.assume(user != address(0));
+        vm.assume(id < type(uint128).max);
+        _setPropertyCount(address(coreContract), id + 1);
+        _setTokenOwner(address(coreContract), id, user);
+        _setUpOnERC1155ReceivedMockCall(address(user));
 
-        _setUpExistsMockCall(id, true);
+        _createTokenBalance(
+            address(coreContract),
+            Constants.DE_RENT_USER_BALANCES_TOKEN_ID,
+            address(coreContract),
+            Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS
+        );
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -744,7 +676,7 @@ contract CoreFacetTest is BaseTest {
         vm.prank(user);
     }
 
-    function testSignalMissedPaymentIncreasesTheOwnerBalanceIfAvailableDepositIsGreaterThan0(address user, uint256 id)
+    function testSignalMissedPaymentIncreasesTheOwnerBalanceIfAvailableDepositIsGreaterThan0(address user, uint128 id)
         external
     {
         // Arrange
@@ -760,7 +692,7 @@ contract CoreFacetTest is BaseTest {
 
     function testSignalMissedPaymentDecreasesTheNumberOfAvailableDepositsIfAvailableDepositIsGreaterThan0(
         address user,
-        uint256 id
+        uint128 id
     ) external {
         // Arrange
         _setupSuccessSignalMissedPaymentTests(user, id);
@@ -775,7 +707,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(rental.availableDeposits, expectedNumberOfDeposits);
     }
 
-    function testSignalMissedPaymentUpdatesTheTenantPaymentPerformanceScore(address user, uint256 id) external {
+    function testSignalMissedPaymentUpdatesTheTenantPaymentPerformanceScore(address user, uint128 id) external {
         // Arrange
         _setupSuccessSignalMissedPaymentTests(user, id);
 
@@ -794,7 +726,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(userScore._voteCount, baseVoteCount + 1);
     }
 
-    function testSignalMissedPaymentEmitsUserPaymentPerformanceScored(address user, uint256 id) external {
+    function testSignalMissedPaymentEmitsUserPaymentPerformanceScored(address user, uint128 id) external {
         // Arrange
         _setupSuccessSignalMissedPaymentTests(user, id);
 
@@ -888,10 +820,14 @@ contract CoreFacetTest is BaseTest {
         coreContract.reviewRental(id, 1, 1);
     }
 
-    function _setupSuccessReviewRentalTests(address user, uint256 id) internal {
+    function _setupSuccessReviewRentalTests(address user, uint128 id) internal {
+        vm.assume(user != address(0));
+        vm.assume(id < type(uint128).max);
+
         vm.prank(user);
-        _setUpOwnerOfMockCall(mockAddress);
-        _setUpExistsMockCall(id, true);
+
+        _setPropertyCount(address(coreContract), id + 1);
+        _setTokenOwner(address(coreContract), id, mockAddress);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -907,7 +843,7 @@ contract CoreFacetTest is BaseTest {
         vm.warp(Constants.CONTRACT_DURATION + 1 days);
     }
 
-    function testReviewRental(address user, uint256 id) external {
+    function testReviewRental(address user, uint128 id) external {
         // Arrange
         _setupSuccessReviewRentalTests(user, id);
 
@@ -920,7 +856,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(uint8(rental.status), uint8(DataTypes.RentalStatus.Completed));
     }
 
-    function testReviewRentalUpdatesTheOwnerScore(address user, uint256 id) external {
+    function testReviewRentalUpdatesTheOwnerScore(address user, uint128 id) external {
         // Arrange
         _setupSuccessReviewRentalTests(user, id);
 
@@ -940,7 +876,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(userScore._voteCount, baseVoteCount + 1);
     }
 
-    function testReviewRentalEmitsUserScored(address user, uint256 id) external {
+    function testReviewRentalEmitsUserScored(address user, uint128 id) external {
         // Arrange
         _setupSuccessReviewRentalTests(user, id);
 
@@ -955,7 +891,7 @@ contract CoreFacetTest is BaseTest {
         coreContract.reviewRental(id, 1, expectedUserVote);
     }
 
-    function testReviewRentalUpdatesThePropertyScore(address user, uint256 id) external {
+    function testReviewRentalUpdatesThePropertyScore(address user, uint128 id) external {
         // Arrange
         _setupSuccessReviewRentalTests(user, id);
 
@@ -971,7 +907,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(userScore._voteCount, 1);
     }
 
-    function testReviewRentalEmitsPropertyScored(address user, uint256 id) external {
+    function testReviewRentalEmitsPropertyScored(address user, uint128 id) external {
         // Arrange
         _setupSuccessReviewRentalTests(user, id);
 
@@ -1003,7 +939,7 @@ contract CoreFacetTest is BaseTest {
 
     function testCannotCompleteRentalIfRentalCompletionDateIsNotReached(address user, uint256 id) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setTokenOwner(address(coreContract), id, user);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -1025,9 +961,9 @@ contract CoreFacetTest is BaseTest {
         coreContract.completeRental(id, 1);
     }
 
-    function testCannotCompleteRentalIfRentalIsNotCompleted(address user) external {
+    function testCannotCompleteRentalIfRentalIsNotCompleted(address user, uint128 id) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setTokenOwner(address(coreContract), id, user);
 
         vm.prank(user);
 
@@ -1037,12 +973,12 @@ contract CoreFacetTest is BaseTest {
         vm.expectRevert(Errors.RentalReviewDeadlineNotReached.selector);
 
         // Act
-        coreContract.completeRental(0, 1);
+        coreContract.completeRental(id, 1);
     }
 
     function testCannotCompleteRentalIfRentalReviewDealineIsNotReached(address user, uint256 id) external {
         // Arrange
-        _setUpOwnerOfMockCall(user);
+        _setTokenOwner(address(coreContract), id, user);
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -1066,10 +1002,18 @@ contract CoreFacetTest is BaseTest {
         coreContract.completeRental(id, 1);
     }
 
-    function _setupSuccessCompleteRentalTests(address user, uint256 id) internal {
-        _setUpOwnerOfMockCall(user);
+    function _setupSuccessCompleteRentalTests(address user, uint128 id) internal {
+        vm.assume(user != address(0));
+        vm.assume(id < type(uint128).max);
 
-        _setUpExistsMockCall(id, true);
+        _setPropertyCount(address(coreContract), id + 1);
+        _setTokenOwner(address(coreContract), id, user);
+        _createTokenBalance(
+            address(coreContract),
+            Constants.DE_RENT_USER_BALANCES_TOKEN_ID,
+            address(coreContract),
+            Constants.MIN_RENT_PRICE * Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS
+        );
 
         DataTypes.Rental memory rentalMock = DataTypes.Rental({
             rentPrice: Constants.MIN_RENT_PRICE,
@@ -1087,7 +1031,7 @@ contract CoreFacetTest is BaseTest {
         vm.prank(user);
     }
 
-    function testCompleteRentalIncrementsTenantBalance(address user, uint256 id) external {
+    function testCompleteRentalIncrementsTenantBalance(address user, uint128 id) external {
         // Arrange
         _setupSuccessCompleteRentalTests(user, id);
 
@@ -1101,7 +1045,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(balance, expectedBalance);
     }
 
-    function testCompleteRentalUpdatesTheTentantScore(address user, uint256 id) external {
+    function testCompleteRentalUpdatesTheTentantScore(address user, uint128 id) external {
         // Arrange
         _setupSuccessCompleteRentalTests(user, id);
 
@@ -1117,7 +1061,7 @@ contract CoreFacetTest is BaseTest {
         assertEq(userScore._voteCount, 1);
     }
 
-    function testCompleteRentalEmitsUserScored(address user, uint256 id) external {
+    function testCompleteRentalEmitsUserScored(address user, uint128 id) external {
         // Arrange
         _setupSuccessCompleteRentalTests(user, id);
 
@@ -1135,6 +1079,7 @@ contract CoreFacetTest is BaseTest {
     // withdraw()
     function testCannotWithdrawIfUserBalanceIs0(address user) external {
         // Arrange
+        vm.assume(user != address(0));
         vm.prank(user);
 
         // Assert
@@ -1147,9 +1092,10 @@ contract CoreFacetTest is BaseTest {
     function testWithdrawRevertsWithFailedToWithdrawIfTranferFails(address user, uint256 balance) external {
         // Arrange
         vm.assume(balance != 0);
+        vm.assume(user != address(0));
         vm.mockCall(user, abi.encode(""), abi.encode());
 
-        _createUserBalance(address(coreContract), user, balance);
+        _createTokenBalance(address(coreContract), Constants.DE_RENT_USER_BALANCES_TOKEN_ID, user, balance);
 
         vm.prank(user);
 
@@ -1164,7 +1110,7 @@ contract CoreFacetTest is BaseTest {
         vm.assume(expectedBalance != 0);
         vm.deal(address(coreContract), 100000 ether);
 
-        _createUserBalance(address(coreContract), user, expectedBalance);
+        _createTokenBalance(address(coreContract), Constants.DE_RENT_USER_BALANCES_TOKEN_ID, user, expectedBalance);
 
         vm.prank(user);
     }
@@ -1178,6 +1124,18 @@ contract CoreFacetTest is BaseTest {
 
         // Assert
         assertEq(mockAddress.balance, uint256(expectedBalance));
+    }
+
+    function testWithdrawSetsTheUserBalanceTo0(uint64 expectedBalance) external {
+        // Arrange
+        _setupSuccessWithdrawTests(expectedBalance, mockAddress);
+
+        // Act
+        coreContract.withdraw();
+
+        // Assert
+        uint256 balance = coreContract.balanceOf(mockAddress);
+        assertEq(balance, 0);
     }
 
     function testWithdrawDecreasesTheContractBalance(uint64 transferAmount) external {
