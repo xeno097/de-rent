@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import "@contracts/libraries/DataTypes.sol";
 import "@contracts/libraries/ScoreCounters.sol";
+import "@contracts/libraries/ERC1155NftCounter.sol";
 import "@contracts/interfaces/IProperty.sol";
 
 struct AppStorage {
@@ -20,6 +21,8 @@ struct AppStorage {
     // ERC1155URIStorage
     string baseUri;
     mapping(uint256 => string) tokenUris;
+    ERC1155NftCounter.Counter tokenCounter;
+    mapping(uint256 => address) owners;
     // TODO: remove this after complete porting
     IProperty propertyInstance;
 }
