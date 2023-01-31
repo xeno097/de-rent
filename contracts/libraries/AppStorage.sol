@@ -23,6 +23,4 @@ struct AppStorage {
     mapping(uint256 => string) tokenUris;
     ERC1155NftCounter.Counter tokenCounter;
     mapping(uint256 => address) owners;
-    // TODO: remove this after complete porting
-    IProperty propertyInstance;
 }

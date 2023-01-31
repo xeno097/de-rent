@@ -14,34 +14,6 @@ abstract contract BaseTest is Test {
     string constant ozOwnableContractError = "Ownable: caller is not the owner";
 
     // Mocks
-    function _setUpExistsMockCall(uint256 property, bool returnValue) internal {
-        vm.mockCall(mockAddress, abi.encodeWithSelector(IProperty.exists.selector, property), abi.encode(returnValue));
-    }
-
-    function _setUpMintMockCall() internal {
-        vm.mockCall(mockAddress, abi.encodeWithSelector(IProperty.mint.selector), abi.encode(0));
-    }
-
-    function _setUpOwnerOfMockCall(address returnData) internal {
-        vm.mockCall(mockAddress, abi.encodeWithSelector(IERC721.ownerOf.selector), abi.encode(returnData));
-    }
-
-    function _setUpTokenUriMockCall(uint256 property, string memory returnValue) internal {
-        vm.mockCall(
-            mockAddress, abi.encodeWithSelector(IERC721Metadata.tokenURI.selector, property), abi.encode(returnValue)
-        );
-    }
-
-    function _setUpOwnerOfMockCall(uint256 property, address returnData) internal {
-        vm.mockCall(mockAddress, abi.encodeWithSelector(IERC721.ownerOf.selector, property), abi.encode(returnData));
-    }
-
-    function _setUpGetTotalPropertyCountMockCall(uint256 returnValue) internal {
-        vm.mockCall(
-            mockAddress, abi.encodeWithSelector(IProperty.getTotalPropertyCount.selector), abi.encode(returnValue)
-        );
-    }
-
     function _setUpOnERC1155ReceivedMockCall(address target) internal {
         vm.mockCall(
             target,

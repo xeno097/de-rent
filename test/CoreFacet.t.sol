@@ -926,7 +926,6 @@ contract CoreFacetTest is BaseTest {
     function testCannotCompleteRentalIfNotPropertyOwner(address user) external {
         // Arrange
         vm.assume(user != mockAddress);
-        _setUpOwnerOfMockCall(mockAddress);
 
         vm.prank(user);
 

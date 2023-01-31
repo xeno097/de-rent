@@ -95,7 +95,7 @@ contract ListingTest is BaseTest {
     function testGetProperties(address[] memory data) external {
         // Arrange
         uint256 expectedLen = data.length;
-        _setUpGetTotalPropertyCountMockCall(expectedLen);
+        _setPropertyCount(address(listingContract),expectedLen);
 
         for (uint128 id = 0; id < expectedLen; id++) {
             _setupListingPropertyTests(id, data[id], id % 2 == 0);
@@ -118,7 +118,7 @@ contract ListingTest is BaseTest {
     // getSelfProperties()
     function testGetSelfProperties(address[] memory data) external {
         // Arrange
-        _setUpGetTotalPropertyCountMockCall(data.length);
+        _setPropertyCount(address(listingContract),data.length);
 
         for (uint128 id = 0; id < data.length; id++) {
             address owner = id % 2 == 0 ? mockAddress : data[id];
@@ -140,7 +140,7 @@ contract ListingTest is BaseTest {
     // getPublishedProperties()
     function testGetPublishedProperties(uint8 properties) external {
         // Arrange
-        _setUpGetTotalPropertyCountMockCall(properties);
+        _setPropertyCount(address(listingContract),properties);
 
         for (uint128 id = 0; id < properties; id++) {
             _setupListingPropertyTests(id, mockAddress, id % 2 == 1);

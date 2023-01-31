@@ -9,7 +9,6 @@ import {IDiamondLoupe} from "../interfaces/IDiamondLoupe.sol";
 import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
 import {IERC173} from "../interfaces/IERC173.sol";
 import {IERC165} from "../interfaces/IERC165.sol";
-import {IProperty} from "@contracts/interfaces/IProperty.sol";
 import {AppStorage} from "@contracts/libraries/AppStorage.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond
