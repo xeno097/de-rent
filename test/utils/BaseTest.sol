@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "forge-std/Test.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
 import "@contracts/interfaces/IProperty.sol";
 import "@contracts/libraries/DataTypes.sol";
@@ -38,6 +39,14 @@ abstract contract BaseTest is Test {
     function _setUpGetTotalPropertyCountMockCall(uint256 returnValue) internal {
         vm.mockCall(
             mockAddress, abi.encodeWithSelector(IProperty.getTotalPropertyCount.selector), abi.encode(returnValue)
+        );
+    }
+
+    function _setUpOnERC1155ReceivedMockCall(address target) internal {
+        vm.mockCall(
+            target,
+            abi.encodeWithSelector(IERC1155Receiver.onERC1155Received.selector),
+            abi.encode(bytes32(bytes4(0xf23a6e61)))
         );
     }
 
