@@ -24,15 +24,13 @@ contract DiamondInit {
 
     // You can add parameters to this function in order to pass in
     // data to set your own state variables
-    function init(address propertyAddress) external {
+    function init() external {
         // adding ERC165 data
         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
         ds.supportedInterfaces[type(IERC165).interfaceId] = true;
         ds.supportedInterfaces[type(IDiamondCut).interfaceId] = true;
         ds.supportedInterfaces[type(IDiamondLoupe).interfaceId] = true;
         ds.supportedInterfaces[type(IERC173).interfaceId] = true;
-
-        s.propertyInstance = IProperty(propertyAddress);
 
         // add your own state variables
         // EIP-2535 specifies that the `diamondCut` function takes two optional
