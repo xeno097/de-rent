@@ -59,6 +59,30 @@ abstract contract BaseTest is Test {
         return _readFromStorage(target, sslot, 0);
     }
 
+    function _setPropertyCount(address target, uint256 value) internal {
+        bytes32 sslot = bytes32(uint256(10));
+
+        _writeToStorage(target, sslot, bytes32(value));
+    }
+
+    function _createTokenBalance(address target, uint256 tokenId, address owner, uint256 balance) internal {
+        bytes32 sslot = keccak256(abi.encode(uint256(uint160(owner)), keccak256(abi.encode(tokenId, uint256(6)))));
+
+        _writeToStorage(target, sslot, bytes32(balance));
+    }
+
+    function _createTokenUri(address target, uint256 tokenId, string memory uri) internal {
+        bytes32 sslot = keccak256(abi.encode(tokenId, uint256(9)));
+
+        _writeToStorage(target, sslot, bytes32(bytes(uri)));
+    }
+
+    function _setTokenOwner(address target, uint256 tokenId, address owner) internal {
+        bytes32 sslot = keccak256(abi.encode(tokenId, uint256(11)));
+
+        _writeToStorage(target, sslot, bytes32(uint256(uint160(owner))));
+    }
+
     function _getUserScoreStorageSlot(address user) internal pure returns (bytes32) {
         return keccak256(abi.encode(uint256(uint160(user)), uint256(3)));
     }
