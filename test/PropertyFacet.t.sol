@@ -39,7 +39,7 @@ contract PropertyFacetTest is BaseTest {
         DiamondArgs memory args = DiamondArgs({
             owner: address(this),
             init: address(initer),
-            initCalldata: abi.encodeWithSelector(DiamondInit.init.selector, address(mockAddress))
+            initCalldata: abi.encodeWithSelector(DiamondInit.init.selector, abi.encode())
         });
 
         Diamond diamondProxy = new Diamond(diamondCut, args);
@@ -105,7 +105,7 @@ contract PropertyFacetTest is BaseTest {
 
     function testUpdateProperty(address user, string memory uri) external {
         // Arrange
-        vm.assume(user != address(this));
+        vm.assume(user != address(this) && user != address(0));
 
         vm.startPrank(user);
 

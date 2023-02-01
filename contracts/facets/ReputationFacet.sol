@@ -31,7 +31,7 @@ contract ReputationFacet is Modifiers, IReputationReader {
     /**
      * @dev see {IReputationReader-getPropertyScore}.
      */
-    function getPropertyScore(uint256 property) external view propertyExist(property) returns (uint256) {
+    function getPropertyScore(uint256 property) external view requirePropertyExists(property) returns (uint256) {
         return s.propertyScores[property].current();
     }
 

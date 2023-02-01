@@ -36,7 +36,7 @@ contract ReputationFacetTest is BaseTest {
         DiamondArgs memory args = DiamondArgs({
             owner: address(this),
             init: address(initer),
-            initCalldata: abi.encodeWithSelector(DiamondInit.init.selector, address(mockAddress))
+            initCalldata: abi.encodeWithSelector(DiamondInit.init.selector, abi.encode())
         });
 
         Diamond diamondProxy = new Diamond(diamondCut, args);
@@ -99,7 +99,6 @@ contract ReputationFacetTest is BaseTest {
     function testCannotGetPropertyScoreForNonExistantProperty() external {
         // Arrange
         uint256 expectedId = 0;
-        _setUpExistsMockCall(expectedId, false);
 
         // Assert
         vm.expectRevert(abi.encodeWithSelector(Errors.PropertyNotFound.selector));
@@ -108,9 +107,10 @@ contract ReputationFacetTest is BaseTest {
         reputationContract.getPropertyScore(expectedId);
     }
 
-    function testGetPropertyScoreReturnsTheMaximumScoreIfPropertyHas0RegisteredScores(uint256 property) external {
+    function testGetPropertyScoreReturnsTheMaximumScoreIfPropertyHas0RegisteredScores(uint128 property) external {
         // Arrange
-        _setUpExistsMockCall(property, true);
+        vm.assume(property < type(uint128).max);
+        _setPropertyCount(address(reputationContract), property + 1);
         uint256 expectedResult = Constants.MAX_SCORE * Constants.SCORE_MULTIPLIER;
 
         // Act
@@ -120,9 +120,10 @@ contract ReputationFacetTest is BaseTest {
         assertEq(res, expectedResult);
     }
 
-    function testGetPropertyScore(uint256 property) external {
+    function testGetPropertyScore(uint128 property) external {
         // Arrange
-        _setUpExistsMockCall(property, true);
+        vm.assume(property < type(uint128).max);
+        _setPropertyCount(address(reputationContract), property + 1);
         uint256[3] memory scores = [uint256(4), uint256(3), uint256(5)];
         uint256 expectedResult = ((scores[0] + scores[1] + scores[2]) * Constants.SCORE_MULTIPLIER) / scores.length;
 

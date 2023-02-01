@@ -2,10 +2,10 @@
 pragma solidity ^0.8.17;
 
 import "@contracts/libraries/AppStorage.sol";
-import "@contracts/libraries/ERC1155NftCounter.sol";
+import "@contracts/libraries/DeRentNFT.sol";
 
 contract Modifiers {
-    using ERC1155NftCounter for ERC1155NftCounter.Counter;
+    using DeRentNFT for AppStorage;
 
     AppStorage internal s;
 
@@ -18,28 +18,14 @@ contract Modifiers {
 
     // Properties
     modifier requirePropertyExists(uint256 property) {
-        if (property >= s.tokenCounter.current()) {
+        if (property >= s.getCount()) {
             revert Errors.PropertyNotFound();
         }
         _;
     }
 
     modifier requirePropertyOwner(uint256 property) {
-        if (s.owners[property] != msg.sender) {
-            revert Errors.NotPropertyOwner();
-        }
-        _;
-    }
-
-    modifier propertyExist(uint256 property) {
-        if (!s.propertyInstance.exists(property)) {
-            revert Errors.PropertyNotFound();
-        }
-        _;
-    }
-
-    modifier onlyPropertyOwner(uint256 property) {
-        if (s.propertyInstance.ownerOf(property) != msg.sender) {
+        if (s.ownerOf(property) != msg.sender) {
             revert Errors.NotPropertyOwner();
         }
         _;

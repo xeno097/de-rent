@@ -1,35 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
-
 import "@contracts/interfaces/ICore.sol";
 import "@contracts/libraries/Errors.sol";
 import "@contracts/libraries/Constants.sol";
 import "@contracts/libraries/DataTypes.sol";
-import "@contracts/libraries/ScoreCounters.sol";
 import "@contracts/libraries/ReputationWriter.sol";
 import "@contracts/libraries/AppStorage.sol";
 import "@contracts/libraries/Modifiers.sol";
-import "@contracts/libraries/LibERC1155.sol";
+import "@contracts/libraries/DeRentToken.sol";
+import "@contracts/libraries/DeRentNFT.sol";
 
 contract CoreFacet is Modifiers, ICoreFacet {
-    using ScoreCounters for ScoreCounters.ScoreCounter;
     using ReputationWriter for AppStorage;
-    using LibERC1155 for AppStorage;
+    using DeRentToken for AppStorage;
+    using DeRentNFT for AppStorage;
 
     /**
      * @dev see {ICoreFacet-balanceOf}.
      */
     function balanceOf(address user) external view returns (uint256) {
-        return s._balanceOf(user, Constants.DE_RENT_USER_BALANCES_TOKEN_ID);
+        return s.balanceOf(user);
     }
 
     /**
      * @dev see {ICoreFacet-requestRental}.
      */
     function requestRental(uint256 propertyId) external payable {
-        address owner = s.owners[propertyId];
+        address owner = s.ownerOf(propertyId);
 
         // If the owner is the 0 address we can assume that the
         // property does not exists.
@@ -57,7 +55,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
             revert Errors.IncorrectDeposit();
         }
 
-        s._mint(address(this), Constants.DE_RENT_USER_BALANCES_TOKEN_ID, msg.value, bytes(""));
+        s.mint(address(this), msg.value);
 
         rental.availableDeposits = Constants.RENTAL_REQUEST_NUMBER_OF_DEPOSITS;
         rental.rentPrice = property.rentPrice;
@@ -98,13 +96,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
     {
         DataTypes.Rental memory rental = s.rentals[request];
 
-        s._safeTransferFrom(
-            address(this),
-            rental.tenant,
-            Constants.DE_RENT_USER_BALANCES_TOKEN_ID,
-            rental.rentPrice * rental.availableDeposits,
-            bytes("")
-        );
+        s.transfer(address(this), rental.tenant, rental.rentPrice * rental.availableDeposits);
 
         delete s.rentals[request];
 
@@ -133,9 +125,9 @@ contract CoreFacet is Modifiers, ICoreFacet {
             revert Errors.IncorrectDeposit();
         }
 
-        address owner = s.owners[rental];
+        address owner = s.ownerOf(rental);
 
-        s._mint(owner, Constants.DE_RENT_USER_BALANCES_TOKEN_ID, msg.value, bytes(""));
+        s.mint(owner, msg.value);
 
         property.paymentDate += Constants.MONTH;
         s.rentals[rental] = property;
@@ -160,9 +152,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
         }
 
         if (property.availableDeposits > 0) {
-            s._safeTransferFrom(
-                address(this), msg.sender, Constants.DE_RENT_USER_BALANCES_TOKEN_ID, property.rentPrice, bytes("")
-            );
+            s.transfer(address(this), msg.sender, property.rentPrice);
             property.availableDeposits -= 1;
         }
 
@@ -186,7 +176,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
             revert Errors.RentalReviewDeadlineReached();
         }
 
-        address owner = s.owners[rental];
+        address owner = s.ownerOf(rental);
 
         property.status = DataTypes.RentalStatus.Completed;
         s.rentals[rental] = property;
@@ -212,13 +202,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
             revert Errors.RentalReviewDeadlineNotReached();
         }
 
-        s._safeTransferFrom(
-            address(this),
-            property.tenant,
-            Constants.DE_RENT_USER_BALANCES_TOKEN_ID,
-            property.rentPrice * property.availableDeposits,
-            bytes("")
-        );
+        s.transfer(address(this), property.tenant, property.rentPrice * property.availableDeposits);
 
         delete s.rentals[rental];
 
@@ -229,8 +213,8 @@ contract CoreFacet is Modifiers, ICoreFacet {
      * @dev see {ICoreFacet-withdraw}.
      */
     function withdraw() external {
-        uint256 balance = s._balanceOf(msg.sender, Constants.DE_RENT_USER_BALANCES_TOKEN_ID);
-        s._burn(msg.sender, Constants.DE_RENT_USER_BALANCES_TOKEN_ID, balance);
+        uint256 balance = s.balanceOf(msg.sender);
+        s.burn(msg.sender, balance);
 
         if (balance == 0) {
             revert Errors.InsufficientBalance();

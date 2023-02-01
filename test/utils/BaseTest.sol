@@ -14,34 +14,6 @@ abstract contract BaseTest is Test {
     string constant ozOwnableContractError = "Ownable: caller is not the owner";
 
     // Mocks
-    function _setUpExistsMockCall(uint256 property, bool returnValue) internal {
-        vm.mockCall(mockAddress, abi.encodeWithSelector(IProperty.exists.selector, property), abi.encode(returnValue));
-    }
-
-    function _setUpMintMockCall() internal {
-        vm.mockCall(mockAddress, abi.encodeWithSelector(IProperty.mint.selector), abi.encode(0));
-    }
-
-    function _setUpOwnerOfMockCall(address returnData) internal {
-        vm.mockCall(mockAddress, abi.encodeWithSelector(IERC721.ownerOf.selector), abi.encode(returnData));
-    }
-
-    function _setUpTokenUriMockCall(uint256 property, string memory returnValue) internal {
-        vm.mockCall(
-            mockAddress, abi.encodeWithSelector(IERC721Metadata.tokenURI.selector, property), abi.encode(returnValue)
-        );
-    }
-
-    function _setUpOwnerOfMockCall(uint256 property, address returnData) internal {
-        vm.mockCall(mockAddress, abi.encodeWithSelector(IERC721.ownerOf.selector, property), abi.encode(returnData));
-    }
-
-    function _setUpGetTotalPropertyCountMockCall(uint256 returnValue) internal {
-        vm.mockCall(
-            mockAddress, abi.encodeWithSelector(IProperty.getTotalPropertyCount.selector), abi.encode(returnValue)
-        );
-    }
-
     function _setUpOnERC1155ReceivedMockCall(address target) internal {
         vm.mockCall(
             target,
@@ -69,31 +41,31 @@ abstract contract BaseTest is Test {
     }
 
     function _setPropertyCount(address target, uint256 value) internal {
-        bytes32 sslot = bytes32(uint256(10));
+        bytes32 sslot = bytes32(uint256(9));
 
         _writeToStorage(target, sslot, bytes32(value));
     }
 
     function _createTokenBalance(address target, uint256 tokenId, address owner, uint256 balance) internal {
-        bytes32 sslot = keccak256(abi.encode(uint256(uint160(owner)), keccak256(abi.encode(tokenId, uint256(6)))));
+        bytes32 sslot = keccak256(abi.encode(uint256(uint160(owner)), keccak256(abi.encode(tokenId, uint256(5)))));
 
         _writeToStorage(target, sslot, bytes32(balance));
     }
 
     function _createTokenUri(address target, uint256 tokenId, string memory uri) internal {
-        bytes32 sslot = keccak256(abi.encode(tokenId, uint256(9)));
+        bytes32 sslot = keccak256(abi.encode(tokenId, uint256(8)));
 
         _writeToStorage(target, sslot, bytes32(bytes(uri)));
     }
 
     function _setTokenOwner(address target, uint256 tokenId, address owner) internal {
-        bytes32 sslot = keccak256(abi.encode(tokenId, uint256(11)));
+        bytes32 sslot = keccak256(abi.encode(tokenId, uint256(10)));
 
         _writeToStorage(target, sslot, bytes32(uint256(uint160(owner))));
     }
 
     function _getUserScoreStorageSlot(address user) internal pure returns (bytes32) {
-        return keccak256(abi.encode(uint256(uint160(user)), uint256(3)));
+        return keccak256(abi.encode(uint256(uint160(user)), uint256(2)));
     }
 
     function _createUserScore(address target, address user, uint256 totalCount, uint256 voteCount) internal {
@@ -112,7 +84,7 @@ abstract contract BaseTest is Test {
     }
 
     function _getUserPaymentPerformanceScoreStorageSlot(address user) internal pure returns (bytes32) {
-        return keccak256(abi.encode(uint256(uint160(user)), uint256(4)));
+        return keccak256(abi.encode(uint256(uint160(user)), uint256(3)));
     }
 
     function _createUserPaymentPerformanceScore(address target, address user, uint256 totalCount, uint256 voteCount)
@@ -137,7 +109,7 @@ abstract contract BaseTest is Test {
     }
 
     function _getPropertyScoreStorageSlot(uint256 property) internal pure returns (bytes32) {
-        return keccak256(abi.encode(property, uint256(5)));
+        return keccak256(abi.encode(property, uint256(4)));
     }
 
     function _createPropertyScore(address target, uint256 property, uint256 totalCount, uint256 voteCount) internal {
