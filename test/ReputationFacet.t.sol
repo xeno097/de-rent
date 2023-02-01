@@ -110,7 +110,7 @@ contract ReputationFacetTest is BaseTest {
     function testGetPropertyScoreReturnsTheMaximumScoreIfPropertyHas0RegisteredScores(uint128 property) external {
         // Arrange
         vm.assume(property < type(uint128).max);
-        _setPropertyCount(address(reputationContract) ,property +1);
+        _setPropertyCount(address(reputationContract), property + 1);
         uint256 expectedResult = Constants.MAX_SCORE * Constants.SCORE_MULTIPLIER;
 
         // Act
@@ -123,7 +123,7 @@ contract ReputationFacetTest is BaseTest {
     function testGetPropertyScore(uint128 property) external {
         // Arrange
         vm.assume(property < type(uint128).max);
-        _setPropertyCount(address(reputationContract) ,property +1);
+        _setPropertyCount(address(reputationContract), property + 1);
         uint256[3] memory scores = [uint256(4), uint256(3), uint256(5)];
         uint256 expectedResult = ((scores[0] + scores[1] + scores[2]) * Constants.SCORE_MULTIPLIER) / scores.length;
 

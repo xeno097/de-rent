@@ -105,7 +105,7 @@ contract PropertyFacetTest is BaseTest {
 
     function testUpdateProperty(address user, string memory uri) external {
         // Arrange
-        vm.assume(user != address(this) && user!=address(0));
+        vm.assume(user != address(this) && user != address(0));
 
         vm.startPrank(user);
 
