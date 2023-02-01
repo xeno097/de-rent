@@ -3,31 +3,11 @@ pragma solidity ^0.8.17;
 
 import "@contracts/libraries/DataTypes.sol";
 
-interface ICore {
+interface ICoreFacet {
     /**
-     * @dev Emitted when `request` gets approved.
+     * @dev Returns `user` balance.
      */
-    event RentalRequestApproved(uint256 indexed request);
-
-    /**
-     * @dev Emitted when `request` gets rejected.
-     */
-    event RentalRequestRejected(uint256 indexed request);
-
-    /**
-     * @dev Emitted when `request` gets created.
-     */
-    event RentalRequested(uint256 indexed request);
-
-    /**
-     * @dev Returns `property` data if `property` exists.
-     */
-    function getPropertyById(uint256 property) external view returns (DataTypes.Property memory);
-
-    /**
-     * @dev Returns `rental` data if `property` exists.
-     */
-    function getRentalById(uint256 id) external view returns (DataTypes.Rental memory);
+    function balanceOf(address user) external view returns (uint256);
 
     /**
      * @dev Allows sender to approve `request` if exists and he/she is the property owner and `request` is pending.
@@ -58,25 +38,6 @@ interface ICore {
      *  Emits a {RentalRequested} event.
      */
     function requestRental(uint256 property) external payable;
-
-    /**
-     * @dev Allows sender to update the `property` visibility if he/she is `property` owner.
-     *
-     * Requirements:
-     * - `property`  must exist.
-     *
-     */
-    function setPropertyVisibility(uint256 property, bool visibility) external;
-
-    /**
-     * @dev Allows sender to mint a new property with the given metadata uri.
-     */
-    function createProperty(string memory uri, uint256 rentPrice) external;
-
-    /**
-     * @dev Allows sender to update `property` uri metadata if he/she is the owner and `property` exists.
-     */
-    function updateProperty(uint256 property, string memory newUri) external;
 
     /**
      * @dev Allows sender to pay the rent for `rental`.

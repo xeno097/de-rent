@@ -5,6 +5,7 @@ libs = ['lib']
 remappings = [
     '@contracts=contracts/',
     "@openzeppelin/=lib/openzeppelin-contracts",
+    "@diamonds/=contracts/diamond",
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

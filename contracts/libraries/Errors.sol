@@ -8,6 +8,11 @@ library Errors {
     error InvalidAddress(address);
 
     /**
+     * @dev Thrown when a function receives an invalid transfer address as input like the 0 address.
+     */
+    error InvalidTransferToAddress(address);
+
+    /**
      * @dev Thrown when the user with the provided address does not exist.
      */
     error UserNotFound();
@@ -121,4 +126,19 @@ library Errors {
      * @dev Thrown when sender tries to perform an action before the rental review date.
      */
     error RentalReviewDeadlineNotReached();
+
+    /**
+     * @dev Thrown when a function receives arrays as inputs that should have the same length.
+     */
+    error ArrayInputsLengthDoNotMatch();
+
+    /**
+     * @dev Thrown when sender tries to approve to himself.
+     */
+    error CannotSetApprovalForSelf();
+
+    /**
+     * @dev Thrown when trying to burn a token using an invalid from address like the 0 address.
+     */
+    error InvalidBurnFromAddress(address);
 }

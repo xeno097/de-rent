@@ -3,11 +3,16 @@ pragma solidity ^0.8.17;
 
 import "@contracts/libraries/DataTypes.sol";
 
-interface IListing {
+interface IListingFacet {
     /**
      * @dev Returns the properties owned by sender.
      */
     function getSelfProperties() external view returns (DataTypes.ListingProperty[] memory);
+
+    /**
+     * @dev Returns the properties that have the `published` field set to true.
+     */
+    function getPublishedProperties() external view returns (DataTypes.ListingProperty[] memory);
 
     /**
      * @dev Returns all the properties existing on the platform.
