@@ -647,7 +647,7 @@ contract CoreFacetTest is BaseTest {
     }
 
     function _setupSuccessSignalMissedPaymentTests(address user, uint128 id) internal {
-        vm.assume(user != address(0));
+        vm.assume(user != address(0) && user != 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
         vm.assume(id < type(uint128).max);
         _setPropertyCount(address(coreContract), id + 1);
         _setTokenOwner(address(coreContract), id, user);
@@ -923,9 +923,10 @@ contract CoreFacetTest is BaseTest {
     }
 
     // completeRental()
-    function testCannotCompleteRentalIfNotPropertyOwner(address user) external {
+    function testCannotCompleteRentalIfNotPropertyOwner(address user, uint128 id) external {
         // Arrange
         vm.assume(user != mockAddress);
+        _setTokenOwner(address(coreContract), id, mockAddress);
 
         vm.prank(user);
 
@@ -933,7 +934,7 @@ contract CoreFacetTest is BaseTest {
         vm.expectRevert(Errors.NotPropertyOwner.selector);
 
         // Act
-        coreContract.completeRental(0, 1);
+        coreContract.completeRental(id, 1);
     }
 
     function testCannotCompleteRentalIfRentalCompletionDateIsNotReached(address user, uint256 id) external {
