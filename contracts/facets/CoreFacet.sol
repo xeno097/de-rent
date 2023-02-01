@@ -9,10 +9,12 @@ import "@contracts/libraries/ReputationWriter.sol";
 import "@contracts/libraries/AppStorage.sol";
 import "@contracts/libraries/Modifiers.sol";
 import "@contracts/libraries/DeRentToken.sol";
+import "@contracts/libraries/DeRentNFT.sol";
 
 contract CoreFacet is Modifiers, ICoreFacet {
     using ReputationWriter for AppStorage;
     using DeRentToken for AppStorage;
+    using DeRentNFT for AppStorage;
 
     /**
      * @dev see {ICoreFacet-balanceOf}.
@@ -25,7 +27,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
      * @dev see {ICoreFacet-requestRental}.
      */
     function requestRental(uint256 propertyId) external payable {
-        address owner = s.owners[propertyId];
+        address owner = s.ownerOf(propertyId);
 
         // If the owner is the 0 address we can assume that the
         // property does not exists.
@@ -123,7 +125,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
             revert Errors.IncorrectDeposit();
         }
 
-        address owner = s.owners[rental];
+        address owner = s.ownerOf(rental);
 
         s.mint(owner, msg.value);
 
@@ -174,7 +176,7 @@ contract CoreFacet is Modifiers, ICoreFacet {
             revert Errors.RentalReviewDeadlineReached();
         }
 
-        address owner = s.owners[rental];
+        address owner = s.ownerOf(rental);
 
         property.status = DataTypes.RentalStatus.Completed;
         s.rentals[rental] = property;

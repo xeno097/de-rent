@@ -1,25 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-
 import "@contracts/interfaces/IProperty.sol";
 import "@contracts/libraries/Errors.sol";
 import "@contracts/libraries/Modifiers.sol";
-import "@contracts/libraries/LibERC1155.sol";
-import "@contracts/libraries/ERC1155NftCounter.sol";
+import "@contracts/libraries/DeRentNFT.sol";
 
 contract PropertyFacet is Modifiers, IPropertyFacet {
-    using ERC1155NftCounter for ERC1155NftCounter.Counter;
-    using LibERC1155 for AppStorage;
+    using DeRentNFT for AppStorage;
 
     /**
      * @dev see {IPropertyFacet-getTotalPropertyCount}.
      */
     function getTotalPropertyCount() external view returns (uint256) {
-        return s.tokenCounter.current();
+        return s.getCount();
     }
 
     /**
@@ -30,12 +24,7 @@ contract PropertyFacet is Modifiers, IPropertyFacet {
             revert Errors.IncorrectRentPrice();
         }
 
-        uint256 propertyId = s.tokenCounter.current();
-        s.tokenCounter.increment();
-
-        s._mint(msg.sender, propertyId, 1, bytes(""));
-        s._setURI(propertyId, uri);
-        s.owners[propertyId] = msg.sender;
+        uint256 propertyId = s.mint(msg.sender, uri);
 
         s.properties[propertyId] = DataTypes.Property({rentPrice: rentPrice, published: true});
     }
@@ -44,7 +33,7 @@ contract PropertyFacet is Modifiers, IPropertyFacet {
      * @dev see {IPropertyFacet-updateProperty}.
      */
     function updateProperty(uint256 property, string memory uri) external requirePropertyOwner(property) {
-        s._setURI(property, uri);
+        s.setTokenURI(property, uri);
     }
 
     /**
