@@ -9,8 +9,8 @@ import {DiamondInit} from "@diamonds/upgradeInitializers/DiamondInit.sol";
 
 import "@contracts/facets/ERC1155TokenReceiverFacet.sol";
 
-contract ListingTest is BaseTest {
-    ERC1155TokenReceiverFacet listingContract;
+contract ERC1155ReceiverFacetTest is BaseTest {
+    ERC1155TokenReceiverFacet erc1155ReceiverContract;
 
     function setUp() public {
         ERC1155TokenReceiverFacet coreContractInstance = new ERC1155TokenReceiverFacet();
@@ -36,7 +36,7 @@ contract ListingTest is BaseTest {
         });
 
         Diamond diamondProxy = new Diamond(diamondCut, args);
-        listingContract = ERC1155TokenReceiverFacet(address(diamondProxy));
+        erc1155ReceiverContract = ERC1155TokenReceiverFacet(address(diamondProxy));
     }
 
     // onERC1155Received()
@@ -44,7 +44,7 @@ contract ListingTest is BaseTest {
         external
     {
         // Act
-        bytes4 res = listingContract.onERC1155Received(operator, from, id, value, data);
+        bytes4 res = erc1155ReceiverContract.onERC1155Received(operator, from, id, value, data);
 
         // Assert
         assertEq(uint32(res), uint32(0xf23a6e61));
@@ -59,7 +59,7 @@ contract ListingTest is BaseTest {
         bytes calldata data
     ) external {
         // Act
-        bytes4 res = listingContract.onERC1155BatchReceived(operator, from, ids, values, data);
+        bytes4 res = erc1155ReceiverContract.onERC1155BatchReceived(operator, from, ids, values, data);
 
         // Assert
         assertEq(uint32(res), uint32(0xbc197c81));
