@@ -11,7 +11,6 @@ import "@contracts/interfaces/IERC1155TokenReceiver.sol";
 abstract contract BaseTest is Test {
     address constant mockAddress = address(97);
     address constant alternativeMockAddress = address(53);
-    string constant ozOwnableContractError = "Ownable: caller is not the owner";
 
     // Mocks
     function _setUpOnERC1155ReceivedMockCall(address target) internal {

@@ -38,6 +38,7 @@ contract ListingTest is BaseTest {
         Diamond diamondProxy = new Diamond(diamondCut, args);
         listingContract = ERC1155TokenReceiverFacet(address(diamondProxy));
     }
+
     // onERC1155Received()
     function testOnERC1155Received(address operator, address from, uint256 id, uint256 value, bytes calldata data)
         external
