@@ -28,6 +28,15 @@ contract DiamondInit {
         ds.supportedInterfaces[type(IDiamondLoupe).interfaceId] = true;
         ds.supportedInterfaces[type(IERC173).interfaceId] = true;
 
+        // ERC1155
+        ds.supportedInterfaces[0xd9b67a26] = true;
+
+        // ERC1155MetadataUri
+        ds.supportedInterfaces[0x0e89341c] = true;
+
+        // ERC1155TokenReceiver
+        ds.supportedInterfaces[0x4e2312e0] = true;
+
         // add your own state variables
         // EIP-2535 specifies that the `diamondCut` function takes two optional
         // arguments: address _init and bytes calldata _calldata
