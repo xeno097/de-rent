@@ -4,4 +4,8 @@ out = 'out'
 libs = ['lib']
 remappings = ['@contracts=contracts/', "@diamonds/=contracts/diamond"]
 
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+[rpc_endpoints]
+optimism_goerli = "${OPTIMISM_GOERLI_RPC}"
+
+[etherscan]
+optimism_goerli = { key = "${ETHERSCAN_API_KEY}", url = "${OPTIMISM_GOERLI_ETHERSCAN_URL}" }
