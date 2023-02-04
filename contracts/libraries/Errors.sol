@@ -141,4 +141,9 @@ library Errors {
      * @dev Thrown when trying to burn a token using an invalid from address like the 0 address.
      */
     error InvalidBurnFromAddress(address);
+
+    /**
+     * @dev Thrown when trying to call a function that should not be called by a user but it is implemented to satisfy an interface.
+     */
+    error ForbiddenOperation();
 }

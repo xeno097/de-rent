@@ -3,7 +3,6 @@ pragma solidity ^0.8.4;
 
 import "./utils/BaseTest.sol";
 
-import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import {IDiamond} from "@diamonds/interfaces/IDiamond.sol";
 import {Diamond, DiamondArgs} from "@diamonds/Diamond.sol";
 import {DiamondInit} from "@diamonds/upgradeInitializers/DiamondInit.sol";
@@ -13,6 +12,7 @@ import "@contracts/libraries/Errors.sol";
 import "@contracts/libraries/Constants.sol";
 import "@contracts/libraries/DataTypes.sol";
 import "@contracts/libraries/Events.sol";
+import "@contracts/interfaces/IERC1155TokenReceiver.sol";
 
 contract CoreFacetTest is BaseTest {
     using ScoreCounters for ScoreCounters.ScoreCounter;
@@ -34,8 +34,8 @@ contract CoreFacetTest is BaseTest {
         selectors[6] = ICoreFacet.completeRental.selector;
         selectors[7] = ICoreFacet.withdraw.selector;
         selectors[8] = ICoreFacet.balanceOf.selector;
-        selectors[9] = IERC1155Receiver.onERC1155Received.selector;
-        selectors[10] = IERC1155Receiver.onERC1155BatchReceived.selector;
+        selectors[9] = IERC1155TokenReceiver.onERC1155Received.selector;
+        selectors[10] = IERC1155TokenReceiver.onERC1155BatchReceived.selector;
 
         IDiamond.FacetCut[] memory diamondCut = new IDiamond.FacetCut[](1);
 

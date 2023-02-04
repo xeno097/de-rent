@@ -16,6 +16,11 @@ contract Modifiers {
         _;
     }
 
+    modifier forbidden() {
+        revert Errors.ForbiddenOperation();
+        _;
+    }
+
     // Properties
     modifier requirePropertyExists(uint256 property) {
         if (property >= s.getCount()) {

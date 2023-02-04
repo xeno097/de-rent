@@ -3,10 +3,9 @@ pragma solidity ^0.8.17;
 
 // Adapted from https://github.com/OpenZeppelin/openzeppelin-contracts and https://github.com/aavegotchi/aavegotchi-contracts
 
-import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
-
 import "@contracts/libraries/AppStorage.sol";
 import "@contracts/libraries/Errors.sol";
+import "@contracts/interfaces/IERC1155TokenReceiver.sol";
 
 library LibERC1155 {
     // Return value from `onERC1155Received` call if a contract accepts receipt (i.e `bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))`).
@@ -229,7 +228,7 @@ library LibERC1155 {
         }
         if (
             size > 0
-                && ERC1155_ACCEPTED != IERC1155Receiver(_to).onERC1155Received(_operator, _from, _id, _value, _data)
+                && ERC1155_ACCEPTED != IERC1155TokenReceiver(_to).onERC1155Received(_operator, _from, _id, _value, _data)
         ) {
             revert Errors.InvalidTransferToAddress(_to);
         }
@@ -250,7 +249,7 @@ library LibERC1155 {
         if (
             size > 0
                 && ERC1155_BATCH_ACCEPTED
-                    != IERC1155Receiver(_to).onERC1155BatchReceived(_operator, _from, _ids, _values, _data)
+                    != IERC1155TokenReceiver(_to).onERC1155BatchReceived(_operator, _from, _ids, _values, _data)
         ) {
             revert Errors.InvalidTransferToAddress(_to);
         }
