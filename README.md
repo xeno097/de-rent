@@ -36,6 +36,88 @@ A posible future improvement would be to allow users to set their rental terms. 
 
 ![Project Diagram](./.github/assets/diagram.png)
 
+### Contract Deployments
+
+The project has been deployed on the `optimism-goerli` testnet.
+
+<table>
+
+<tr>
+<th>Contract</th>
+<th>Address</th>
+</tr>
+
+<tr><td>CoreFacet</td><td> 
+
+[0x739051ebe51FC306B30577D75CF2979dd17a8a22](https://goerli-optimism.etherscan.io/address/0x739051ebe51FC306B30577D75CF2979dd17a8a22#code)
+
+</td></tr>
+
+<tr><td>ERC1155Facet</td><td>
+
+[0x72C264Cb4bE59C72641aae82357284F8c8c456f4](https://goerli-optimism.etherscan.io/address/0x72C264Cb4bE59C72641aae82357284F8c8c456f4#code)
+
+</td></tr>
+
+<tr><td>ERC1155TokenReceiverFacet</td><td>
+
+[0x88B3bd902010Eb224b6f0564DC5DC365515D294a](https://goerli-optimism.etherscan.io/address/0x88B3bd902010Eb224b6f0564DC5DC365515D294a#code)
+
+</td></tr>
+
+<tr><td>ListingFacet</td><td>
+
+[0xce9180134cba34F1aDAf302F3d7aBb05fa060cA3](https://goerli-optimism.etherscan.io/address/0xce9180134cba34F1aDAf302F3d7aBb05fa060cA3#code)
+
+</td></tr>
+
+<tr><td>PropertyFacet</td><td>
+
+[0x99E1cEB467e3cB7D74b4B243Cf9D84191f0A521C](https://goerli-optimism.etherscan.io/address/0x99E1cEB467e3cB7D74b4B243Cf9D84191f0A521C#code)
+
+</td></tr>
+
+<tr><td>ReputationFacet</td><td>
+
+[0xcc25046E00a6a9046346BD5a99474baaB7516423](https://goerli-optimism.etherscan.io/address/0xcc25046E00a6a9046346BD5a99474baaB7516423#code)
+
+</td></tr>
+
+<tr><td>DiamondCutFacet</td><td>
+
+[0x0074E4b52Fe9695b97689C20Ad42421ee8F18adD](https://goerli-optimism.etherscan.io/address/0x0074E4b52Fe9695b97689C20Ad42421ee8F18adD#code)
+
+</td></tr>
+
+<tr><td>DiamondLoupeFacet</td><td>
+
+[0x288791D8ef2e1CBbD700aa82395923D7Dabde4F8](https://goerli-optimism.etherscan.io/address/0x288791D8ef2e1CBbD700aa82395923D7Dabde4F8#code)
+
+</td></tr>
+
+<tr><td>OwnershipFacet</td><td>
+
+[0xEC22680e8A978AA3DC99d36a9eAAb6eff148b5cb](https://goerli-optimism.etherscan.io/address/0xEC22680e8A978AA3DC99d36a9eAAb6eff148b5cb#code)
+
+</td></tr>
+
+<tr><td>DiamondInit</td><td>
+
+[0x982DEF9dC7dB61d9C0D0C6b32E84E0811EC950Ea](https://goerli-optimism.etherscan.io/address/0x982DEF9dC7dB61d9C0D0C6b32E84E0811EC950Ea#code)
+
+</td></tr>
+
+<tr><td>Diamond</td><td>
+
+[0x0141b696Ba60A391Dbf35BF04E93aFCc27FA24d4](https://goerli-optimism.etherscan.io/address/0x0141b696Ba60A391Dbf35BF04E93aFCc27FA24d4#code)
+
+</td></tr>
+
+</td></tr>
+
+
+</table>
+
 ## Resources
 
 The only set of resources you'll ever need to undestand [EIP2535](https://eips.ethereum.org/EIPS/eip-2535)
